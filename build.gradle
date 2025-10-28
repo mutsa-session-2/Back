@@ -52,3 +52,8 @@ dependencies {
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+// Cloud deploy convenience: always produce a stable jar name
+tasks.named('bootJar') {
+    archiveFileName = 'app.jar'
+}

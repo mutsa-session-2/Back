@@ -13,4 +13,7 @@ public interface FloorPlanRepository extends JpaRepository<FloorPlan, Long> {
     List<FloorPlan> findBySchedule_ScheduleId(Long scheduleId);
     List<FloorPlan> findByScheduledDate(LocalDate date);
     List<FloorPlan> findBySchedule_ScheduleIdAndScheduledDate(Long scheduleId, LocalDate date);
+    
+    // 특정 사용자의 특정 날짜 할 일 조회
+    List<FloorPlan> findByCreatorUserIdAndScheduledDate(Long creatorUserId, LocalDate date);
 }

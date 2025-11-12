@@ -25,7 +25,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @RestController
 @RequestMapping("/api/auth")
 @Validated
-@Tag(name = "Auth", description = "회원가입 및 로그인")
+@Tag(name = "Auth", description = "회원가입 및 로그인입니다")
 public class AuthController {
 
     private final UserService userService;

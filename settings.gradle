@@ -1,1 +1,6 @@
+plugins {
+	// Auto-provision matching JDKs for Gradle toolchains (downloads JDK 17 automatically)
+	id 'org.gradle.toolchains.foojay-resolver-convention' version '0.8.0'
+}
+
 rootProject.name = 'floorida'

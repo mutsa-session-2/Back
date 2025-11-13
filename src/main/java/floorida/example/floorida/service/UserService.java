@@ -14,10 +14,12 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final CharacterService characterService;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, CharacterService characterService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.characterService = characterService;
     }
 
     @Transactional
@@ -32,7 +34,12 @@ public class UserService {
         user.setEmail(req.getEmail());
         user.setUsername(req.getUsername());
         user.setPasswordHash(passwordEncoder.encode(req.getPassword()));
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        
+        // 회원가입 시 기본 캐릭터 자동 생성
+        characterService.createDefaultCharacter(savedUser);
+        
+        return savedUser;
     }
 
     public User authenticateOrThrow(LoginRequest req) {

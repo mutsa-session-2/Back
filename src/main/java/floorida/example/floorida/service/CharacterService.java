@@ -1,11 +1,11 @@
 package floorida.example.floorida.service;
 
+import floorida.example.floorida.config.AwsS3Properties;
 import floorida.example.floorida.dto.CharacterResponse;
 import floorida.example.floorida.entity.Character;
 import floorida.example.floorida.entity.User;
 import floorida.example.floorida.repository.CharacterRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,12 +16,7 @@ public class CharacterService {
     
     private final CharacterRepository characterRepository;
     private final CurrentUserService currentUserService;
-
-    @Value("${aws.s3.bucket-name}")
-    private String bucketName;
-
-    @Value("${aws.s3.region}")
-    private String region;
+    private final AwsS3Properties awsS3Properties;
 
     public CharacterResponse getMyCharacter() {
         User user = currentUserService.getCurrentUser()
@@ -46,8 +41,8 @@ public class CharacterService {
         // S3 버킷의 기본 캐릭터 이미지 URL
         String defaultImageUrl = String.format(
             "https://%s.s3.%s.amazonaws.com/캐릭터.png",
-            bucketName,
-            region
+            awsS3Properties.getBucketName(),
+            awsS3Properties.getRegion()
         );
 
         Character character = Character.builder()

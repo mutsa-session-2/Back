@@ -1,6 +1,6 @@
 package floorida.example.floorida.config;
 
-import org.springframework.beans.factory.annotation.Value;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -9,23 +9,17 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 
 @Configuration
+@RequiredArgsConstructor
 public class AwsS3Config {
 
-    @Value("${aws.s3.access-key}")
-    private String accessKey;
-
-    @Value("${aws.s3.secret-key}")
-    private String secretKey;
-
-    @Value("${aws.s3.region}")
-    private String region;
+    private final AwsS3Properties properties;
 
     @Bean
     public S3Client s3Client() {
         return S3Client.builder()
-            .region(Region.of(region))
+            .region(Region.of(properties.getRegion()))
             .credentialsProvider(StaticCredentialsProvider.create(
-                AwsBasicCredentials.create(accessKey, secretKey)
+                AwsBasicCredentials.create(properties.getAccessKey(), properties.getSecretKey())
             ))
             .build();
     }

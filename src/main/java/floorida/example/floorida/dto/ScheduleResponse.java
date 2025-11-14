@@ -25,6 +25,20 @@ public class ScheduleResponse {
         required = true
     )
     private String title;
+
+    @Schema(
+        description = "원래 자연어 목표 (AI 생성 또는 사용자가 입력한 값)",
+        example = "한 주 만에 자료구조 기본기 다지기",
+        required = false
+    )
+    private String originalGoal;
+
+    @Schema(
+        description = "목표 요약/설명 (AI 생성 또는 사용자가 입력)",
+        example = "배열/리스트→스택/큐→트리/그래프 순서로 기본 개념을 빠르게 훑고 문제 풀이로 정리",
+        required = false
+    )
+    private String goalSummary;
     
     @Schema(
         description = "시작일",

@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import floorida.example.floorida.dto.AiScheduleRequest;
 import floorida.example.floorida.dto.ScheduleCreateRequest;
 import floorida.example.floorida.dto.ScheduleResponse;
+import floorida.example.floorida.dto.ScheduleUpdateRequest;
 import floorida.example.floorida.entity.FloorPlan;
 import floorida.example.floorida.entity.Schedule;
 import floorida.example.floorida.entity.User;
@@ -47,6 +48,9 @@ public class ScheduleService {
         schedule.setCreatorUserId(user.getUserId());
         schedule.setTeamId(req.getTeamId());
         schedule.setTitle(req.getTitle());
+        // 원래 목표/요약 설정 (없으면 title을 목표로 사용)
+        schedule.setOriginalGoal(req.getOriginalGoal() != null && !req.getOriginalGoal().isBlank() ? req.getOriginalGoal() : req.getTitle());
+        schedule.setGoalSummary(req.getGoalSummary());
         schedule.setStartDate(req.getStartDate());
         schedule.setEndDate(req.getEndDate());
     schedule.setColor(getOrGenerateColor(req.getColor()));
@@ -76,7 +80,9 @@ public class ScheduleService {
         Schedule schedule = new Schedule();
         schedule.setCreatorUserId(user.getUserId());
         schedule.setTeamId(req.getTeamId());
-        schedule.setTitle(req.getGoal());
+        // 표시용 제목 (title 제공 시 사용, 없으면 goal 그대로)
+        schedule.setTitle(req.getTitle() != null && !req.getTitle().isBlank() ? req.getTitle() : req.getGoal());
+        schedule.setOriginalGoal(req.getGoal());
         schedule.setStartDate(req.getStartDate());
         schedule.setEndDate(req.getEndDate());
     schedule.setColor(getOrGenerateColor(req.getColor()));
@@ -88,6 +94,8 @@ public class ScheduleService {
             floor.setScheduledDate(af.date());
             schedule.addFloor(floor);
         }
+        // 간단 요약 자동 생성 (추후 AI 요약 확장 가능)
+        schedule.setGoalSummary(generateSimpleSummary(req.getGoal(), req.getStartDate(), req.getEndDate(), aiFloors.size()));
         Schedule saved = scheduleRepository.save(schedule);
         return toResponse(saved);
     }
@@ -132,11 +140,58 @@ public class ScheduleService {
         return ScheduleResponse.builder()
                 .scheduleId(s.getScheduleId())
                 .title(s.getTitle())
+                .originalGoal(s.getOriginalGoal())
+                .goalSummary(s.getGoalSummary())
                 .startDate(s.getStartDate())
                 .endDate(s.getEndDate())
                 .color(s.getColor())
                 .teamId(s.getTeamId())
                 .floors(floors)
                 .build();
+    }
+
+    // 간단 요약 생성 헬퍼 (향후 AI 기반 요약으로 대체 가능)
+    private String generateSimpleSummary(String goal, LocalDate start, LocalDate end, int steps) {
+        return String.format("목표: %s | 기간: %s~%s | 단계 수: %d", goal, start, end, steps);
+    }
+
+    @Transactional
+    public ScheduleResponse update(Long id, ScheduleUpdateRequest req) {
+        User user = currentUserService.getCurrentUser().orElseThrow(() -> new IllegalStateException("Unauthenticated"));
+        Schedule s = scheduleRepository.findByScheduleIdAndCreatorUserId(id, user.getUserId())
+                .orElseThrow(() -> new IllegalArgumentException("Schedule not found"));
+
+        if (req.getTitle() != null && !req.getTitle().isBlank()) {
+            s.setTitle(req.getTitle());
+        }
+        if (req.getGoalSummary() != null) {
+            s.setGoalSummary(req.getGoalSummary());
+        }
+        if (req.getColor() != null && !req.getColor().isBlank()) {
+            s.setColor(req.getColor());
+        }
+        if (req.getStartDate() != null) {
+            if (s.getEndDate() != null && s.getEndDate().isBefore(req.getStartDate())) {
+                throw new IllegalArgumentException("Invalid date range: start after end");
+            }
+            s.setStartDate(req.getStartDate());
+        }
+        if (req.getEndDate() != null) {
+            if (s.getStartDate() != null && req.getEndDate().isBefore(s.getStartDate())) {
+                throw new IllegalArgumentException("Invalid date range: end before start");
+            }
+            s.setEndDate(req.getEndDate());
+        }
+
+        Schedule saved = scheduleRepository.save(s);
+        return toResponse(saved);
+    }
+
+    @Transactional
+    public void delete(Long id) {
+        User user = currentUserService.getCurrentUser().orElseThrow(() -> new IllegalStateException("Unauthenticated"));
+        Schedule s = scheduleRepository.findByScheduleIdAndCreatorUserId(id, user.getUserId())
+                .orElseThrow(() -> new IllegalArgumentException("Schedule not found"));
+        scheduleRepository.delete(s);
     }
 }

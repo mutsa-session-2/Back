@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import floorida.example.floorida.dto.AiScheduleRequest;
 import floorida.example.floorida.dto.ScheduleCreateRequest;
 import floorida.example.floorida.dto.ScheduleResponse;
+import floorida.example.floorida.dto.ScheduleUpdateRequest;
 import floorida.example.floorida.service.ScheduleService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -508,4 +509,207 @@ public class ScheduleController {
     ) {
         return ResponseEntity.ok(scheduleService.getById(id));
     }
+
+      @PatchMapping("/{id}")
+      @Operation(
+        summary = "일정 부분 수정",
+        description = """
+            일정의 제목, 기간, 색상, 목표 요약을 부분적으로 수정합니다.
+            
+            **특징:**
+            - 제공된 필드만 변경되며 나머지는 유지됩니다
+            - 원래 목표(originalGoal)는 수정할 수 없습니다 (AI 생성 시 입력한 원본 유지)
+            - 날짜 범위 유효성 검사 적용 (startDate ≤ endDate)
+            
+            **권한:**
+            - JWT 토큰 필수
+            - 본인이 생성한 일정만 수정 가능
+            
+            **수정 가능 필드:**
+            - `title`: 일정 표시 제목
+            - `goalSummary`: 목표 요약/설명
+            - `startDate`, `endDate`: 일정 기간
+            - `color`: 색상
+            """
+      )
+      @ApiResponses({
+        @ApiResponse(
+            responseCode = "200", 
+            description = "수정 성공", 
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ScheduleResponse.class),
+                examples = @ExampleObject(
+                    name = "수정 성공 예시",
+                    value = """
+                        {
+                          "scheduleId": 1,
+                          "title": "자료구조 집중 학습 주간 (수정됨)",
+                          "originalGoal": "한 주 만에 자료구조 기본기 다지기",
+                          "goalSummary": "일주일 동안 핵심 자료구조만 빠르게 정리",
+                          "startDate": "2025-11-16",
+                          "endDate": "2025-11-23",
+                          "color": "#FF6B6B",
+                          "teamId": null,
+                          "floors": [
+                            {
+                              "floorId": 1,
+                              "title": "배열과 연결 리스트",
+                              "scheduledDate": "2025-11-16"
+                            }
+                          ]
+                        }
+                        """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "400", 
+            description = "유효성 오류",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    value = """
+                        {
+                          "error": "Invalid date range: end before start",
+                          "message": "종료일이 시작일보다 이전일 수 없습니다"
+                        }
+                        """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "401", 
+            description = "인증 실패",
+            content = @Content(mediaType = "application/json")
+        ),
+        @ApiResponse(
+            responseCode = "404", 
+            description = "일정 없음",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    value = """
+                        {
+                          "error": "Schedule not found",
+                          "message": "요청한 일정이 존재하지 않거나 권한이 없습니다"
+                        }
+                        """
+                )
+            )
+        )
+      })
+      @io.swagger.v3.oas.annotations.parameters.RequestBody(
+        description = """
+            일정 수정 요청 본문 (모든 필드 선택 사항)
+            
+            **제공하지 않은 필드는 변경되지 않습니다.**
+            
+            **예시 사용 사례:**
+            - 제목만 변경: `{ "title": "새 제목" }`
+            - 기간만 연장: `{ "endDate": "2025-12-31" }`
+            - 색상 + 요약 변경: `{ "color": "#FF6B6B", "goalSummary": "새 설명" }`
+            """,
+        required = true,
+        content = @Content(
+            mediaType = "application/json",
+            schema = @Schema(implementation = ScheduleUpdateRequest.class),
+            examples = {
+                @ExampleObject(
+                    name = "제목만 변경",
+                    value = """
+                        {
+                          "title": "자료구조 집중 학습 주간"
+                        }
+                        """
+                ),
+                @ExampleObject(
+                    name = "기간 연장",
+                    value = """
+                        {
+                          "endDate": "2025-12-31"
+                        }
+                        """
+                ),
+                @ExampleObject(
+                    name = "전체 수정",
+                    value = """
+                        {
+                          "title": "Spring Boot 심화 학습",
+                          "startDate": "2025-11-20",
+                          "endDate": "2025-12-20",
+                          "goalSummary": "JPA, Security, Batch를 한 달간 집중 학습",
+                          "color": "#4CAF50"
+                        }
+                        """
+                )
+            }
+        )
+      )
+      public ResponseEntity<ScheduleResponse> update(
+          @Parameter(description = "수정할 일정 ID", required = true, example = "1")
+          @PathVariable Long id,
+          @Valid @RequestBody ScheduleUpdateRequest req) {
+        return ResponseEntity.ok(scheduleService.update(id, req));
+      }
+
+      @DeleteMapping("/{id}")
+      @Operation(
+        summary = "일정 삭제",
+        description = """
+            일정을 영구 삭제합니다.
+            
+            **주의사항:**
+            - 삭제된 일정은 복구할 수 없습니다
+            - 포함된 모든 세부 계획(Floor)도 함께 영구 제거됩니다
+            - 연관된 완료 기록도 모두 삭제됩니다 (Cascade)
+            
+            **권한:**
+            - JWT 토큰 필수
+            - 본인이 생성한 일정만 삭제 가능
+            - 팀 일정의 경우 생성자만 삭제 가능
+            """
+      )
+      @ApiResponses({
+        @ApiResponse(
+            responseCode = "204", 
+            description = "삭제 성공 (응답 본문 없음)"
+        ),
+        @ApiResponse(
+            responseCode = "401", 
+            description = "인증 실패",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    value = """
+                        {
+                          "error": "Unauthorized",
+                          "message": "로그인이 필요합니다"
+                        }
+                        """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "404", 
+            description = "일정 없음",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    value = """
+                        {
+                          "error": "Schedule not found",
+                          "message": "삭제할 일정이 존재하지 않거나 권한이 없습니다"
+                        }
+                        """
+                )
+            )
+        )
+      })
+      public ResponseEntity<Void> delete(
+          @Parameter(description = "삭제할 일정 ID", required = true, example = "1")
+          @PathVariable Long id) {
+        scheduleService.delete(id);
+        return ResponseEntity.noContent().build();
+      }
 }

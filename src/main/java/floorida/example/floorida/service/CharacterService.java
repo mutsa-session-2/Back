@@ -18,13 +18,19 @@ public class CharacterService {
     private final CurrentUserService currentUserService;
     private final AwsS3Properties awsS3Properties;
 
+    @Transactional
     public CharacterResponse getMyCharacter() {
         User user = currentUserService.getCurrentUser()
                 .orElseThrow(() -> new IllegalStateException("Unauthenticated"));
-        
+
         Character character = characterRepository.findByUser_UserId(user.getUserId())
-            .orElseThrow(() -> new IllegalArgumentException("캐릭터가 존재하지 않습니다"));
-        
+                .orElseGet(() -> {
+                    // 기존 가입 사용자가 캐릭터가 없으면 자동 생성
+                    createDefaultCharacter(user);
+                    return characterRepository.findByUser_UserId(user.getUserId())
+                            .orElseThrow(() -> new IllegalStateException("캐릭터 자동 생성에 실패했습니다"));
+                });
+
         return new CharacterResponse(
             character.getCharacterId(),
             character.getImageUrl()
@@ -45,9 +51,13 @@ public class CharacterService {
             awsS3Properties.getRegion()
         );
 
+        // 기본 장착 아이템 (빈 JSON)
+        String defaultEquippedItems = "{}";
+
         Character character = Character.builder()
             .user(user)
             .imageUrl(defaultImageUrl)
+            .equippedItems(defaultEquippedItems)
             .build();
         
         characterRepository.save(character);

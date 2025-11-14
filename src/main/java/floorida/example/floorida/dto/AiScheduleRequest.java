@@ -40,6 +40,15 @@ public class AiScheduleRequest {
     )
     private String goal;
 
+    @Schema(
+        description = "일정 표시용 제목 (생략 시 goal을 그대로 제목으로 사용)",
+        example = "자료구조 집중 학습 주간",
+        required = false,
+        minLength = 1,
+        maxLength = 255
+    )
+    private String title;
+
     @NotNull
     @Schema(
         description = "시작일 (YYYY-MM-DD 형식)",

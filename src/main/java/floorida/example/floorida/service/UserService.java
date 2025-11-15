@@ -15,11 +15,16 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final CharacterService characterService;
+    private final UserProfileService userProfileService;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, CharacterService characterService) {
+    public UserService(UserRepository userRepository,
+                       PasswordEncoder passwordEncoder,
+                       CharacterService characterService,
+                       UserProfileService userProfileService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.characterService = characterService;
+        this.userProfileService = userProfileService;
     }
 
     @Transactional
@@ -48,6 +53,10 @@ public class UserService {
         if (!passwordEncoder.matches(req.getPassword(), user.getPasswordHash())) {
             throw new IllegalArgumentException("Invalid credentials");
         }
+
+        // 처음 로그인한 사용자라면 UserProfile 생성 + 50코인 지급
+        userProfileService.ensureSignupBonusOnFirstLogin(user);
+
         return user;
     }
 }

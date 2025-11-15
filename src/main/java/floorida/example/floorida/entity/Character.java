@@ -26,6 +26,10 @@ public class Character {
     @Column(name = "image_url", nullable = false, length = 500)
     private String imageUrl;
 
+    // 현재 장착 중인 아이템 (JSON 형식: {"hat": 3, "face": 7, "accessory": 12})
+    @Column(name = "equipped_items", columnDefinition = "JSON", nullable = true)
+    private String equippedItems;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

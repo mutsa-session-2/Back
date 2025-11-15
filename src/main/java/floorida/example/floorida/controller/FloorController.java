@@ -7,6 +7,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -158,5 +159,49 @@ public class FloorController {
         @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ) {
         return ResponseEntity.ok(floorService.getFloorsByDate(date));
+    }
+
+    @PostMapping("/{floorId}/complete")
+    @Operation(
+        summary = "Floor 완료 체크 (10코인 지급)",
+        description = """
+            지정한 Floor를 완료 처리하고, 해당 사용자에게 **10코인**을 지급합니다.
+
+            - 코인 정책
+              - 퀘스트(층, Floor) 하나를 체크(완료)할 때마다 **10코인**
+            - 중복 보호
+              - 이미 완료된 Floor를 다시 완료하려 하면 400 에러가 발생합니다.
+            - 권한
+              - JWT 토큰 필수
+              - 본인이 생성한 Floor만 완료 가능
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(
+            responseCode = "200",
+            description = "완료 처리 성공 (10코인 지급됨)",
+            content = @Content(mediaType = "application/json")
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "이미 완료된 Floor, 권한 없음 또는 기타 잘못된 요청",
+            content = @Content(mediaType = "application/json")
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "인증 실패",
+            content = @Content(mediaType = "application/json")
+        )
+    })
+    public ResponseEntity<?> completeFloor(
+        @Parameter(description = "완료 처리할 Floor ID", required = true, example = "1")
+        @PathVariable Long floorId
+    ) {
+        try {
+            floorService.completeFloor(floorId);
+            return ResponseEntity.ok("Floor completed! +10 coins");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 }

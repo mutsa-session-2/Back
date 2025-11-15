@@ -24,6 +24,11 @@ public class ScheduleCreateRequest {
     )
     private String title;
 
+    // Lombok이 처리하지만, 일부 도구에서 인식을 못 해서 명시적으로 getter 추가
+    public String getTitle() {
+        return title;
+    }
+
     @Schema(
         description = "원래 목표(사용자가 생각한 자연어 목표). 생략 시 title을 그대로 사용",
         example = "토익 900점 달성하기",

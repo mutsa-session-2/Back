@@ -26,8 +26,9 @@ public class Character {
     @Column(name = "image_url", nullable = false, length = 500)
     private String imageUrl;
 
-    // 현재 장착 중인 아이템 (JSON 형식: {"hat": 3, "face": 7, "accessory": 12})
-    @Column(name = "equipped_items", columnDefinition = "JSON", nullable = true)
+    // 현재 장착 중인 아이템 (JSON 문자열로 저장)
+    // PostgreSQL JSON 타입 대신 VARCHAR/TEXT로 저장해서 매핑 오류를 피함
+    @Column(name = "equipped_items", nullable = true, length = 2000)
     private String equippedItems;
 
     @CreationTimestamp

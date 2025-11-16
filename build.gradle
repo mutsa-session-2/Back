@@ -39,7 +39,11 @@ dependencies {
     // application.properties 메타데이터 생성 (jwt.* 경고 제거)
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 
-    runtimeOnly 'com.mysql:mysql-connector-j'
+    // PostgreSQL (Supabase)
+    runtimeOnly 'org.postgresql:postgresql'
+    
+    // H2 Database (테스트용 인메모리 DB)
+    testRuntimeOnly 'com.h2database:h2'
 
     // JWT
     implementation 'io.jsonwebtoken:jjwt-api:0.11.5'

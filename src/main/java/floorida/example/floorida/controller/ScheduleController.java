@@ -337,78 +337,77 @@ public class ScheduleController {
         )
     })
     @io.swagger.v3.oas.annotations.parameters.RequestBody(
-        description = """
-            AI 일정 생성 요청 본문
+      description = """
+        AI 일정 생성 요청 본문
             
-            **필수 필드:**
-            - `goal`: 달성하고자 하는 목표를 자연어로 입력 (예: "토익 900점 달성", "파이썬 기초 마스터")
-            - `startDate`: 시작일 (YYYY-MM-DD 형식)
-            - `endDate`: 종료일 (YYYY-MM-DD 형식)
+        **필수 필드:**
+        - `goal`: 달성 목표 (자연어)
+        - `startDate`: 시작일 (YYYY-MM-DD)
+        - `endDate`: 종료일 (YYYY-MM-DD)
             
-            **선택 필드:**
-            - `teamId`: 팀 ID (팀 일정인 경우만)
-            - `color`: 일정 색상 (HEX 코드)
+        **선택 필드:**
+        - `teamId`: 팀 일정인 경우 팀 ID
+        - `color`: 일정 색상 (미입력 시 서버가 자동 랜덤 배정)
             
-            **Goal 작성 팁:**
-            - 구체적일수록 더 정확한 계획 생성 (예: "토익" 보다 "토익 900점 달성"이 좋음)
-            - 목표의 난이도를 명시하면 더 적절한 단계 분배 (예: "기초부터 시작하는 파이썬")
-            - 특정 학습 방식 명시 가능 (예: "매일 1시간씩 운동 루틴 만들기")
-            """,
-        required = true,
-        content = @Content(
-            mediaType = "application/json",
-            schema = @Schema(implementation = AiScheduleRequest.class),
-            examples = {
-                @ExampleObject(
-                    name = "학습 목표",
-                    value = """
-                        {
-                          "goal": "한 달 안에 Spring Boot 웹 개발 기초 다지기",
-                          "startDate": "2025-11-01",
-                          "endDate": "2025-11-30",
-                          "teamId": null,
-                          "color": "#4CAF50"
-                        }
-                        """
-                ),
-                @ExampleObject(
-                    name = "운동 목표",
-                    value = """
-                        {
-                          "goal": "10kg 감량을 위한 매일 운동 루틴",
-                          "startDate": "2025-12-01",
-                          "endDate": "2026-02-28",
-                          "teamId": null,
-                          "color": "#FF5722"
-                        }
-                        """
-                ),
-                @ExampleObject(
-                    name = "프로젝트 목표",
-                    value = """
-                        {
-                          "goal": "팀 협업 프로젝트 MVP 개발 완료",
-                          "startDate": "2025-11-15",
-                          "endDate": "2025-12-15",
-                          "teamId": 3,
-                          "color": "#2196F3"
-                        }
-                        """
-                ),
-                @ExampleObject(
-                    name = "자격증 준비",
-                    value = """
-                        {
-                          "goal": "정보처리기사 필기 시험 준비",
-                          "startDate": "2026-01-01",
-                          "endDate": "2026-03-01",
-                          "teamId": null,
-                          "color": "#9C27B0"
-                        }
-                        """
-                )
-            }
-        )
+        **Goal 작성 팁:**
+        - 구체적일수록 더 정확한 계획 생성
+        - 난이도/범위/방식 포함 시 품질 향상
+            
+        **색상 자동 배정 안내:**
+        - Swagger 예시에서 color가 없으면 자동으로 팔레트에서 선택됩니다
+        - 직접 지정하고 싶을 때만 HEX 코드로 전달하세요
+        """,
+      required = true,
+      content = @Content(
+        mediaType = "application/json",
+        schema = @Schema(implementation = AiScheduleRequest.class),
+        examples = {
+          @ExampleObject(
+            name = "학습 목표 (색상 자동)",
+            value = """
+              {
+                "goal": "한 달 안에 Spring Boot 웹 개발 기초 다지기",
+                "startDate": "2025-11-01",
+                "endDate": "2025-11-30",
+                "teamId": null
+              }
+              """
+          ),
+          @ExampleObject(
+            name = "운동 목표 (색상 자동)",
+            value = """
+              {
+                "goal": "10kg 감량을 위한 매일 운동 루틴",
+                "startDate": "2025-12-01",
+                "endDate": "2026-02-28",
+                "teamId": null
+              }
+              """
+          ),
+          @ExampleObject(
+            name = "프로젝트 목표 (팀 일정)",
+            value = """
+              {
+                "goal": "팀 협업 프로젝트 MVP 개발 완료",
+                "startDate": "2025-11-15",
+                "endDate": "2025-12-15",
+                "teamId": 3
+              }
+              """
+          ),
+          @ExampleObject(
+            name = "자격증 준비 (색상 자동)",
+            value = """
+              {
+                "goal": "정보처리기사 필기 시험 준비",
+                "startDate": "2026-01-01",
+                "endDate": "2026-03-01",
+                "teamId": null
+              }
+              """
+          )
+        }
+      )
     )
     public ResponseEntity<ScheduleResponse> createWithAi(@Valid @RequestBody AiScheduleRequest req) {
         return ResponseEntity.ok(scheduleService.createWithAi(req));

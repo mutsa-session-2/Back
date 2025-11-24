@@ -77,8 +77,7 @@ public class AiScheduleRequest {
     private Long teamId;
     
     @Schema(
-        description = "일정 색상 (HEX 코드, 미입력 시 자동 배정)",
-        example = "#1E90FF",
+        description = "일정 색상 (선택, 미입력 시 서버가 랜덤 팔레트에서 자동 배정)",
         required = false,
         pattern = "^#[0-9A-Fa-f]{6}$"
     )

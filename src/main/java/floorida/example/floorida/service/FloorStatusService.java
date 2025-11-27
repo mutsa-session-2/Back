@@ -2,11 +2,14 @@ package floorida.example.floorida.service;
 
 import floorida.example.floorida.dto.DailyCompletionResponse;
 import floorida.example.floorida.dto.FloorStatusResponse;
+import floorida.example.floorida.dto.MonthlyScheduleResponse;
 import floorida.example.floorida.entity.FloorPlan;
 import floorida.example.floorida.entity.FloorStatus;
+import floorida.example.floorida.entity.Schedule;
 import floorida.example.floorida.entity.User;
 import floorida.example.floorida.repository.FloorPlanRepository;
 import floorida.example.floorida.repository.FloorStatusRepository;
+import floorida.example.floorida.repository.ScheduleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +28,8 @@ public class FloorStatusService {
     private final FloorStatusRepository floorStatusRepository;
     private final FloorPlanRepository floorPlanRepository;
     private final CurrentUserService currentUserService;
+
+    private final ScheduleRepository scheduleRepository;
 
     public List<FloorStatusResponse> getStatusByDate(LocalDate date) {
         User user = currentUserService.getCurrentUser()
@@ -99,5 +104,25 @@ public class FloorStatusService {
         }
         
         return result;
+    }
+
+    public List<MonthlyScheduleResponse> getMonthlyScheduleData(LocalDate start, LocalDate end) {
+        User user = currentUserService.getCurrentUser()
+                .orElseThrow(() -> new IllegalStateException("Unauthenticated"));
+        
+        // 해당 기간에 걸쳐있는 모든 스케줄 조회
+        // startDate <= end AND endDate >= start
+        List<Schedule> schedules = scheduleRepository.findByCreatorUserIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+                user.getUserId(), end, start);
+        
+        return schedules.stream()
+                .map(s -> MonthlyScheduleResponse.builder()
+                        .scheduleId(s.getScheduleId())
+                        .title(s.getTitle())
+                        .color(s.getColor())
+                        .startDate(s.getStartDate())
+                        .endDate(s.getEndDate())
+                        .build())
+                .collect(Collectors.toList());
     }
 }

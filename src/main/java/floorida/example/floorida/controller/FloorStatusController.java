@@ -2,6 +2,7 @@ package floorida.example.floorida.controller;
 
 import floorida.example.floorida.dto.DailyCompletionResponse;
 import floorida.example.floorida.dto.FloorStatusResponse;
+import floorida.example.floorida.dto.MonthlyScheduleResponse;
 import floorida.example.floorida.service.FloorStatusService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -156,5 +157,59 @@ public class FloorStatusController {
         }
         
         return ResponseEntity.ok(floorStatusService.getCalendarData(start, end));
+    }
+    @GetMapping("/calendar/month")
+    @Operation(
+        summary = "월별 프로젝트(스케줄) 목록 조회",
+        description = """
+            특정 연도와 월에 진행되는 모든 프로젝트(스케줄) 목록을 조회합니다.
+            날짜별 세부 일정이 아닌, 해당 월에 걸쳐 있는 큰 프로젝트 단위의 정보를 반환합니다.
+            
+            **응답 정보:**
+            - 스케줄 ID, 제목, 색상
+            - 시작일, 종료일
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(
+            responseCode = "200",
+            description = "조회 성공",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    value = """
+                        [
+                          {
+                            "scheduleId": 1,
+                            "title": "토익 900점 달성",
+                            "color": "#2E8B57",
+                            "startDate": "2025-11-01",
+                            "endDate": "2025-12-31"
+                          },
+                          {
+                            "scheduleId": 2,
+                            "title": "Spring Boot 프로젝트",
+                            "color": "#4CAF50",
+                            "startDate": "2025-11-15",
+                            "endDate": "2025-11-20"
+                          }
+                        ]
+                        """
+                )
+            )
+        ),
+        @ApiResponse(responseCode = "400", description = "잘못된 날짜 입력"),
+        @ApiResponse(responseCode = "401", description = "인증 실패")
+    })
+    public ResponseEntity<List<MonthlyScheduleResponse>> getMonthlyCalendarData(
+            @Parameter(description = "연도", required = true, example = "2025") 
+            @RequestParam int year,
+            @Parameter(description = "월 (1-12)", required = true, example = "11") 
+            @RequestParam int month) {
+        
+        LocalDate start = LocalDate.of(year, month, 1);
+        LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
+        
+        return ResponseEntity.ok(floorStatusService.getMonthlyScheduleData(start, end));
     }
 }

@@ -37,13 +37,23 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    @Operation(summary = "회원가입", description = "이메일/비밀번호/사용자명으로 회원가입")
-    @ApiResponse(responseCode = "201", description = "생성된 사용자 ID 반환",
-        content = @Content(schema = @Schema(implementation = Long.class)))
+    @Operation(summary = "회원가입", description = "회원가입 후 자동 로그인 (토큰 및 유저정보 반환)")
+    @ApiResponse(responseCode = "201", description = "성공 시 토큰과 유저 ID 반환",
+        content = @Content(schema = @Schema(implementation = AuthResponse.class)))
     public ResponseEntity<?> register(@Valid @RequestBody SignupRequest request) {
         try {
+            // 1. 회원가입 진행 (DB 저장)
             User user = userService.register(request);
-            return ResponseEntity.status(HttpStatus.CREATED).body(user.getUserId());
+            
+            // 2. 토큰 생성 (자동 로그인 효과)
+            String token = jwtService.generateToken(user.getEmail());
+            
+            // 3. DTO 생성 (토큰 + 유저 ID + 이메일)
+            AuthResponse response = new AuthResponse(token, user.getUserId(), user.getEmail());
+            
+            // 4. 응답 반환
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+            
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
@@ -57,7 +67,7 @@ public class AuthController {
         try {
             User user = userService.authenticateOrThrow(request);
             String token = jwtService.generateToken(user.getEmail());
-            return ResponseEntity.ok(new AuthResponse(token));
+            return ResponseEntity.ok(new AuthResponse(token, user.getUserId(), user.getEmail()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
         }

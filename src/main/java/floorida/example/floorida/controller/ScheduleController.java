@@ -68,6 +68,8 @@ public class ScheduleController {
                         {
                           "scheduleId": 1,
                           "title": "토익 900점 달성",
+                          "originalGoal": "토익 900점 달성",
+                          "goalSummary": null,
                           "startDate": "2025-10-24",
                           "endDate": "2025-10-31",
                           "color": "#2E8B57",
@@ -250,6 +252,8 @@ public class ScheduleController {
                         {
                           "scheduleId": 2,
                           "title": "한 주 만에 자료구조 기본기 다지기",
+                          "originalGoal": "한 주 만에 자료구조 기본기 다지기",
+                          "goalSummary": "목표: 한 주 만에 자료구조 기본기 다지기 | 기간: 2025-10-24~2025-10-31 | 단계 수: 8",
                           "startDate": "2025-10-24",
                           "endDate": "2025-10-31",
                           "color": "#1E90FF",

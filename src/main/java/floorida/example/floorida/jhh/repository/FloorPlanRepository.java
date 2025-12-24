@@ -1,0 +1,25 @@
+package floorida.example.floorida.jhh.repository;
+
+import java.time.LocalDate;
+import java.util.List;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import floorida.example.floorida.jhh.entity.FloorPlan;
+
+@Repository
+public interface FloorPlanRepository extends JpaRepository<FloorPlan, Long> {
+    List<FloorPlan> findBySchedule_ScheduleId(Long scheduleId);
+    List<FloorPlan> findByScheduledDate(LocalDate date);
+    List<FloorPlan> findBySchedule_ScheduleIdAndScheduledDate(Long scheduleId, LocalDate date);
+    
+    // 특정 사용자의 특정 날짜 할 일 조회
+    List<FloorPlan> findByCreatorUserIdAndScheduledDate(Long creatorUserId, LocalDate date);
+    
+    // 특정 사용자의 모든 Floor 조회 (날짜 있는 것만)
+    List<FloorPlan> findAllByCreatorUserIdAndScheduledDate(Long creatorUserId, LocalDate date);
+    
+    // 특정 사용자의 기간별 Floor 조회
+    List<FloorPlan> findAllByCreatorUserIdAndScheduledDateBetween(Long creatorUserId, LocalDate start, LocalDate end);
+}

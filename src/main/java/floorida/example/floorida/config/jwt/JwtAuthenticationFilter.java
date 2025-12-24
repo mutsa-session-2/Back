@@ -9,8 +9,8 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import floorida.example.floorida.repository.UserRepository;
-import floorida.example.floorida.service.JwtService;
+import floorida.example.floorida.jhh.repository.UserRepository;
+import floorida.example.floorida.jhh.service.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

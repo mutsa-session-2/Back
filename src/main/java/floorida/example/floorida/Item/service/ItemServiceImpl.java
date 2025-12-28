@@ -6,6 +6,8 @@ import floorida.example.floorida.Item.entity.ItemType;
 import floorida.example.floorida.Item.entity.UserItem;
 import floorida.example.floorida.Item.repository.ItemRepository;
 import floorida.example.floorida.Item.repository.UserItemRepository;
+import floorida.example.floorida.jhh.entity.UserProfile;
+import floorida.example.floorida.jhh.repository.UserProfileRepository;
 import floorida.example.floorida.jhh.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,6 +25,8 @@ public class ItemServiceImpl implements ItemService {
     private final ItemRepository itemRepository;
     private final UserItemRepository userItemRepository;
     private final UserService userService;
+    private final UserProfileRepository userProfileRepository;
+
 
     /**
      * 상점 아이템 조회
@@ -63,15 +67,22 @@ public class ItemServiceImpl implements ItemService {
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new IllegalArgumentException("아이템 없음"));
 
-        // 2️⃣ 이미 구매했는지 체크
-        if (userItemRepository.existsByUserIdAndItem_ItemId(userId, itemId)) {
-            throw new IllegalStateException("이미 구매한 아이템");
+        // 2️⃣ 이미 구매했는지 확인
+        boolean alreadyOwned =
+                userItemRepository.findByUserIdAndItem_ItemId(userId, itemId).isPresent();
+
+        if (alreadyOwned) {
+            throw new IllegalStateException("이미 구매한 아이템입니다.");
         }
 
-        // 3️⃣ 코인 차감
-        userService.deductCoin(userId, item.getPrice());
+        // 3️⃣ 유저 프로필 조회
+        UserProfile profile = userProfileRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("유저 프로필 없음"));
 
-        // 4️⃣ UserItem 저장
+        // 4️⃣ 포인트 차감
+        profile.deductPoints(item.getPrice());
+
+        // 5️⃣ UserItem 저장
         UserItem userItem = new UserItem(userId, item);
         userItemRepository.save(userItem);
     }

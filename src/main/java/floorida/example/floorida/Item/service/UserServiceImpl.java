@@ -17,13 +17,13 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void deductCoin(Long userId, int price) {
-        UserProfile profile = userProfileRepository.findByUserId(userId)
+        UserProfile profile = userProfileRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("유저 프로필 없음"));
 
-        if (profile.getCoin() < price) {
-            throw new IllegalStateException("코인이 부족합니다.");
+        if (profile.getPoints() < price) {
+            throw new IllegalStateException("포인트 부족");
         }
 
-        profile.deductCoin(price); // coin -= price
+        profile.setPoints(profile.getPoints() - price);
     }
 }

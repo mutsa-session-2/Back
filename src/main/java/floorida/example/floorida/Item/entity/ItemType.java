@@ -4,6 +4,5 @@ public enum ItemType {
     FACE,
     HAT,
     CLOTHES,
-    ACCESSORY,
-    BADGE
+    ACCESSORY
 }

@@ -14,4 +14,6 @@ public class ItemResponse {
     private int price;
     private String imgUrl;
     private String description;
+    private boolean owned;
+
 }

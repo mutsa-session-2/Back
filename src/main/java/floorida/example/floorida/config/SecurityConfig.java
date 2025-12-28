@@ -1,5 +1,7 @@
 package floorida.example.floorida.config;
 
+import floorida.example.floorida.config.jwt.SetCustomUserDetailsFilter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -22,9 +24,12 @@ import floorida.example.floorida.config.jwt.JwtAuthenticationFilter;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final SetCustomUserDetailsFilter setCustomUserDetailsFilter;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
+                          SetCustomUserDetailsFilter setCustomUserDetailsFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.setCustomUserDetailsFilter = setCustomUserDetailsFilter;
     }
 
     @Bean
@@ -47,7 +52,8 @@ public class SecurityConfig {
                 // Everything else requires auth
                 .anyRequest().authenticated()
             )
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(setCustomUserDetailsFilter, JwtAuthenticationFilter.class);
         return http.build();
     }
 

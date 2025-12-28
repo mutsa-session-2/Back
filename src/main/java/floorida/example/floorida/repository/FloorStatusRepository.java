@@ -34,6 +34,20 @@ public interface FloorStatusRepository extends JpaRepository<FloorStatus, Long> 
            )
         """)
     int deleteAllRelatedToUser(@Param("userId") Long userId);
+
+    @Query("""
+        select distinct fs.floor.scheduledDate
+        from FloorStatus fs
+        where fs.user.userId = :userId
+          and fs.isCompleted = true
+          and fs.floor.scheduledDate is not null
+          and fs.floor.scheduledDate between :start and :end
+        """)
+    List<LocalDate> findDistinctCompletedScheduledDates(
+            @Param("userId") Long userId,
+            @Param("start") LocalDate start,
+            @Param("end") LocalDate end
+    );
 }
 
 

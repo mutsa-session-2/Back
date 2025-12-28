@@ -8,11 +8,15 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
+import floorida.example.floorida.dto.MyBadgeResponse;
 import floorida.example.floorida.dto.OnboardingRequest;
 import floorida.example.floorida.dto.WithdrawRequest;
 import floorida.example.floorida.entity.User;
 import floorida.example.floorida.entity.UserProfile;
 import floorida.example.floorida.service.AccountService;
+import floorida.example.floorida.service.BadgeService;
 import floorida.example.floorida.service.CurrentUserService;
 import floorida.example.floorida.service.UserProfileService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -34,11 +38,13 @@ public class MeController {
     private final CurrentUserService currentUserService;
     private final UserProfileService userProfileService;
     private final AccountService accountService;
+    private final BadgeService badgeService;
 
-    public MeController(CurrentUserService currentUserService, UserProfileService userProfileService, AccountService accountService) {
+    public MeController(CurrentUserService currentUserService, UserProfileService userProfileService, AccountService accountService, BadgeService badgeService) {
         this.currentUserService = currentUserService;
         this.userProfileService = userProfileService;
         this.accountService = accountService;
+        this.badgeService = badgeService;
     }
 
     @GetMapping
@@ -86,6 +92,12 @@ public class MeController {
 
         int points = userProfileService.getPoints(user.getUserId());
         return ResponseEntity.ok(points);
+    }
+
+    @GetMapping("/badges")
+    @Operation(summary = "내 뱃지 목록 조회", description = "로그인한 사용자가 획득한 뱃지 목록을 반환합니다.")
+    public ResponseEntity<List<MyBadgeResponse>> getMyBadges() {
+        return ResponseEntity.ok(badgeService.getMyBadges());
     }
 
     @GetMapping("/profile")

@@ -21,6 +21,13 @@
 postgresql://postgres.xxxxxxxxxxxxx:[YOUR-PASSWORD]@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres
 ```
 
+> 참고: 위 `pooler.supabase.com:5432`는 **Session 모드 풀러**로 동작하는 경우가 많아,
+> 서버(특히 PaaS/컨테이너)에서 인스턴스가 여러 개 뜨거나 재시작이 잦으면
+> `FATAL: MaxClientsInSessionMode: max clients reached` 오류가 쉽게 발생할 수 있습니다.
+> 가능하면 아래 중 하나를 권장합니다.
+> - **Direct 연결**: `db.<ref>.supabase.co:5432` (일반 JDBC)
+> - **Transaction pooler**: Supabase가 제공하는 pooler의 **transaction 포트(환경에 따라 보통 6543)**
+
 ## 3. .env 파일 설정
 
 `floorida/.env` 파일을 다음과 같이 수정:

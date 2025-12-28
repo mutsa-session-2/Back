@@ -21,15 +21,18 @@ public class FloorService {
     private final FloorStatusRepository floorStatusRepository;
     private final CurrentUserService currentUserService;
     private final UserProfileService userProfileService;
+    private final BadgeService badgeService;
 
     public FloorService(FloorPlanRepository floorPlanRepository,
                         FloorStatusRepository floorStatusRepository,
                         CurrentUserService currentUserService,
-                        UserProfileService userProfileService) {
+                        UserProfileService userProfileService,
+                        BadgeService badgeService) {
         this.floorPlanRepository = floorPlanRepository;
         this.floorStatusRepository = floorStatusRepository;
         this.currentUserService = currentUserService;
         this.userProfileService = userProfileService;
+        this.badgeService = badgeService;
     }
 
     @Transactional(readOnly = true)
@@ -91,6 +94,10 @@ public class FloorService {
 
         // 개인 층수 +1 (오늘 할 일 하나 완료할 때마다 한 층 올라감)
         userProfileService.incrementPersonalLevel(user.getUserId());
+
+        // 출석 뱃지 지급 (가정: 하루 1개 이상 완료 = 출석)
+        LocalDate attendanceDate = floor.getScheduledDate() != null ? floor.getScheduledDate() : LocalDate.now();
+        badgeService.onAttendance(user, attendanceDate);
     }
 
     private FloorResponse toResponse(FloorPlan floor) {

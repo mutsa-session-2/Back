@@ -11,6 +11,7 @@ import floorida.example.floorida.entity.User;
 import floorida.example.floorida.repository.CharacterRepository;
 import floorida.example.floorida.repository.FloorStatusRepository;
 import floorida.example.floorida.repository.ScheduleRepository;
+import floorida.example.floorida.repository.UserBadgeRepository;
 import floorida.example.floorida.repository.UserProfileRepository;
 import floorida.example.floorida.repository.UserRepository;
 
@@ -22,6 +23,7 @@ public class AccountService {
     private final CharacterRepository characterRepository;
     private final FloorStatusRepository floorStatusRepository;
     private final ScheduleRepository scheduleRepository;
+    private final UserBadgeRepository userBadgeRepository;
     private final PasswordEncoder passwordEncoder;
 
     public AccountService(
@@ -30,6 +32,7 @@ public class AccountService {
             CharacterRepository characterRepository,
             FloorStatusRepository floorStatusRepository,
             ScheduleRepository scheduleRepository,
+                UserBadgeRepository userBadgeRepository,
             PasswordEncoder passwordEncoder
     ) {
         this.userRepository = userRepository;
@@ -37,6 +40,7 @@ public class AccountService {
         this.characterRepository = characterRepository;
         this.floorStatusRepository = floorStatusRepository;
         this.scheduleRepository = scheduleRepository;
+        this.userBadgeRepository = userBadgeRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -66,10 +70,13 @@ public class AccountService {
         // 3) character
         characterRepository.deleteByUser_UserId(userId);
 
-        // 4) profile
+        // 4) user_badges
+        userBadgeRepository.deleteAllById_UserId(userId);
+
+        // 5) profile
         userProfileRepository.deleteById(userId);
 
-        // 5) user
+        // 6) user
         userRepository.deleteById(userId);
     }
 }

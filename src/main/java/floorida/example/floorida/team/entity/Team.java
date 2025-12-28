@@ -1,4 +1,4 @@
-package floorida.example.floorida.team;
+package floorida.example.floorida.team.entity;
 
 
 import jakarta.persistence.*;
@@ -19,7 +19,7 @@ public class Team {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "team_id")
-    private Long team_id;
+    private Long id;
 
     @Column(nullable = false, length = 255)
     private String name;
@@ -40,11 +40,11 @@ public class Team {
     @OneToMany(mappedBy = "team")
     private Set<TeamMember> teamMembers = new HashSet<>();
 
-    public Team(String name, Integer level, String description, String joinCode) {
+    public Team(String name, String description, String joinCode) {
         this.name = name;
-        this.level = level;
         this.description = description;
         this.joinCode = joinCode;
+        this.level = 1;
     }
 
 

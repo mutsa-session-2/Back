@@ -9,8 +9,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import floorida.example.floorida.dto.OnboardingRequest;
+import floorida.example.floorida.dto.WithdrawRequest;
 import floorida.example.floorida.entity.User;
 import floorida.example.floorida.entity.UserProfile;
+import floorida.example.floorida.service.AccountService;
 import floorida.example.floorida.service.CurrentUserService;
 import floorida.example.floorida.service.UserProfileService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -21,6 +23,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/me")
@@ -30,10 +33,12 @@ public class MeController {
 
     private final CurrentUserService currentUserService;
     private final UserProfileService userProfileService;
+    private final AccountService accountService;
 
-    public MeController(CurrentUserService currentUserService, UserProfileService userProfileService) {
+    public MeController(CurrentUserService currentUserService, UserProfileService userProfileService, AccountService accountService) {
         this.currentUserService = currentUserService;
         this.userProfileService = userProfileService;
+        this.accountService = accountService;
     }
 
     @GetMapping
@@ -179,5 +184,23 @@ public class MeController {
         );
 
         return ResponseEntity.ok(updated);
+    }
+
+    @PostMapping("/withdraw")
+    @Operation(
+        summary = "회원 탈퇴",
+        description = "현재 비밀번호를 확인한 뒤 계정 및 연관 데이터를 삭제합니다."
+    )
+    public ResponseEntity<Void> withdraw(@Valid @RequestBody WithdrawRequest request) {
+        User user = currentUserService.getCurrentUser()
+                .orElseThrow(() -> new IllegalStateException("Unauthenticated"));
+
+        try {
+            accountService.withdraw(user, request.getPassword());
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            // 비밀번호 불일치 등
+            return ResponseEntity.status(401).build();
+        }
     }
 }

@@ -48,6 +48,14 @@ public class UserProfile {
 
     @Column(name = "personal_level", nullable = false)
     private Integer personalLevel = 1;
+
+    public void deductPoints(int price) {
+        if (this.points < price) {
+            throw new IllegalStateException("포인트가 부족합니다.");
+        }
+        this.points -= price;
+    }
+
 }
 
 

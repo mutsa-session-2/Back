@@ -1,4 +1,4 @@
-package floorida.example.floorida.team;
+package floorida.example.floorida.team.entity;
 
 import floorida.example.floorida.entity.User;
 import jakarta.persistence.*;

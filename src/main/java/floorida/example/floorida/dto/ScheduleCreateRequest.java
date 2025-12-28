@@ -109,6 +109,6 @@ public class ScheduleCreateRequest {
             type = "string",
             format = "date"
         )
-        private LocalDate scheduledDate;
+        private LocalDate scheduledDate;        
     }
 }

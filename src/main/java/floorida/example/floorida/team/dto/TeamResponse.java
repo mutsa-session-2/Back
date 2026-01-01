@@ -11,7 +11,6 @@ import java.time.LocalDate;
 public class TeamResponse {
     private Long teamId;
     private String name;
-    private String description;
     private Integer level;
     private LocalDate startDate;
     private LocalDate endDate;

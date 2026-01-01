@@ -1,6 +1,7 @@
 package floorida.example.floorida.service;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.concurrent.ThreadLocalRandom;
@@ -51,21 +52,21 @@ public class ScheduleService {
         schedule.setCreatorUserId(user.getUserId());
         schedule.setTeamId(null);
         schedule.setTitle(req.getTitle());
-        // 원래 목표/요약 설정 (없으면 title을 목표로 사용)
-        schedule.setOriginalGoal(req.getOriginalGoal() != null && !req.getOriginalGoal().isBlank() ? req.getOriginalGoal() : req.getTitle());
-        schedule.setGoalSummary(req.getGoalSummary());
+        // 수동 생성은 프로젝트 이름/기간만 입력받고, 세부 계획은 기본값으로 자동 생성
+        schedule.setOriginalGoal(req.getTitle());
+        schedule.setGoalSummary(null);
         schedule.setStartDate(req.getStartDate());
         schedule.setEndDate(req.getEndDate());
         schedule.setColor(getOrGenerateColor(req.getColor()));
 
-        if (req.getFloors() != null && !req.getFloors().isEmpty()) {
-            for (var f : req.getFloors()) {
-                FloorPlan floor = new FloorPlan();
-                floor.setCreatorUserId(user.getUserId());
-                floor.setTitle(f.getTitle());
-                floor.setScheduledDate(f.getScheduledDate());
-                schedule.addFloor(floor);
-            }
+        long totalDays = ChronoUnit.DAYS.between(req.getStartDate(), req.getEndDate()) + 1;
+        for (int i = 0; i < totalDays; i++) {
+            LocalDate date = req.getStartDate().plusDays(i);
+            FloorPlan floor = new FloorPlan();
+            floor.setCreatorUserId(user.getUserId());
+            floor.setTitle((i + 1) + "일 차");
+            floor.setScheduledDate(date);
+            schedule.addFloor(floor);
         }
         Schedule saved = scheduleRepository.save(schedule);
         return toResponse(saved);

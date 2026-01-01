@@ -29,23 +29,6 @@ public class ScheduleCreateRequest {
         return title;
     }
 
-    @Schema(
-        description = "원래 목표(사용자가 생각한 자연어 목표). 생략 시 title을 그대로 사용",
-        example = "토익 900점 달성하기",
-        required = false,
-        minLength = 1,
-        maxLength = 1000
-    )
-    private String originalGoal;
-
-    @Schema(
-        description = "목표 요약/설명 (선택). AI 또는 사용자가 직접 작성한 간단한 설명",
-        example = "8일 동안 RC/LC 균형 학습으로 900점 목표 달성",
-        required = false,
-        maxLength = 2000
-    )
-    private String goalSummary;
-
     @NotNull
     @Schema(
         description = "시작일 (YYYY-MM-DD 형식)",
@@ -80,35 +63,4 @@ public class ScheduleCreateRequest {
         required = false
     )
     private Long teamId;
-
-    @Schema(
-        description = "세부 계획(층) 목록 (선택 사항)",
-        required = false
-    )
-    private List<FloorCreate> floors;
-
-    @Getter
-    @Setter
-    @Schema(description = "세부 계획(층) 생성 정보")
-    public static class FloorCreate {
-        
-        @NotBlank
-        @Schema(
-            description = "세부 계획 제목",
-            example = "RC 파트 총정리",
-            required = true,
-            minLength = 1,
-            maxLength = 255
-        )
-        private String title;
-        
-        @Schema(
-            description = "예정 날짜 (YYYY-MM-DD 형식, 선택 사항)",
-            example = "2025-10-24",
-            required = false,
-            type = "string",
-            format = "date"
-        )
-        private LocalDate scheduledDate;        
-    }
 }

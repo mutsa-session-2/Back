@@ -8,10 +8,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import floorida.example.floorida.dto.FloorResponse;
+import floorida.example.floorida.dto.FloorUpdateRequest;
 import floorida.example.floorida.service.FloorService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -23,6 +26,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/floors")
@@ -203,5 +207,51 @@ public class FloorController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+
+    @PatchMapping("/{floorId}")
+    @Operation(
+        summary = "Floor 제목 수정",
+        description = """
+            지정한 Floor(세부 일정)의 제목을 수정합니다.
+
+            **사용 사례:**
+            - 캘린더/프로젝트 수정 화면에서 일차(할 일) 내용을 원하는 텍스트로 변경
+
+            **권한:**
+            - JWT 토큰 필수
+            - 본인이 생성한 Floor만 수정 가능
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(
+            responseCode = "200",
+            description = "수정 성공",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = FloorResponse.class),
+                examples = @ExampleObject(
+                    value = """
+                        {
+                          "floorId": 1,
+                          "scheduleId": 1,
+                          "scheduleTitle": "토익 900점 달성",
+                          "scheduleColor": "#FF6B6B",
+                          "floorTitle": "RC 파트 총정리",
+                          "scheduledDate": "2025-11-13"
+                        }
+                        """
+                )
+            )
+        ),
+        @ApiResponse(responseCode = "400", description = "잘못된 요청 또는 권한 없음"),
+        @ApiResponse(responseCode = "401", description = "인증 실패")
+    })
+    public ResponseEntity<FloorResponse> updateFloor(
+        @Parameter(description = "수정할 Floor ID", required = true, example = "1")
+        @PathVariable Long floorId,
+        @Valid @RequestBody FloorUpdateRequest req
+    ) {
+        return ResponseEntity.ok(floorService.updateFloor(floorId, req));
     }
 }

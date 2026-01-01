@@ -32,7 +32,7 @@ public class AccountService {
             CharacterRepository characterRepository,
             FloorStatusRepository floorStatusRepository,
             ScheduleRepository scheduleRepository,
-                UserBadgeRepository userBadgeRepository,
+            UserBadgeRepository userBadgeRepository,
             PasswordEncoder passwordEncoder
     ) {
         this.userRepository = userRepository;

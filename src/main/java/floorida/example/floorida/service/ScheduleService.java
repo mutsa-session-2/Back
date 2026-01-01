@@ -43,17 +43,20 @@ public class ScheduleService {
         User user = currentUserService.getCurrentUser()
                 .orElseThrow(() -> new IllegalStateException("Unauthenticated"));
         validateDates(req.getStartDate(), req.getEndDate());
+        if (req.getTeamId() != null) {
+            throw new IllegalArgumentException("Team schedules are not supported yet");
+        }
 
         Schedule schedule = new Schedule();
         schedule.setCreatorUserId(user.getUserId());
-        schedule.setTeamId(req.getTeamId());
+        schedule.setTeamId(null);
         schedule.setTitle(req.getTitle());
         // 원래 목표/요약 설정 (없으면 title을 목표로 사용)
         schedule.setOriginalGoal(req.getOriginalGoal() != null && !req.getOriginalGoal().isBlank() ? req.getOriginalGoal() : req.getTitle());
         schedule.setGoalSummary(req.getGoalSummary());
         schedule.setStartDate(req.getStartDate());
         schedule.setEndDate(req.getEndDate());
-    schedule.setColor(getOrGenerateColor(req.getColor()));
+        schedule.setColor(getOrGenerateColor(req.getColor()));
 
         if (req.getFloors() != null && !req.getFloors().isEmpty()) {
             for (var f : req.getFloors()) {
@@ -73,19 +76,22 @@ public class ScheduleService {
         User user = currentUserService.getCurrentUser()
                 .orElseThrow(() -> new IllegalStateException("Unauthenticated"));
         validateDates(req.getStartDate(), req.getEndDate());
+        if (req.getTeamId() != null) {
+            throw new IllegalArgumentException("Team schedules are not supported yet");
+        }
 
         // Call AI to get suggested floors
         List<AiPlanningService.AiFloor> aiFloors = aiPlanningService.plan(req.getGoal(), req.getStartDate(), req.getEndDate());
 
         Schedule schedule = new Schedule();
         schedule.setCreatorUserId(user.getUserId());
-        schedule.setTeamId(req.getTeamId());
+        schedule.setTeamId(null);
         // 표시용 제목 (title 제공 시 사용, 없으면 goal 그대로)
         schedule.setTitle(req.getTitle() != null && !req.getTitle().isBlank() ? req.getTitle() : req.getGoal());
         schedule.setOriginalGoal(req.getGoal());
         schedule.setStartDate(req.getStartDate());
         schedule.setEndDate(req.getEndDate());
-    schedule.setColor(getOrGenerateColor(req.getColor()));
+        schedule.setColor(getOrGenerateColor(req.getColor()));
 
         for (var af : aiFloors) {
             FloorPlan floor = new FloorPlan();

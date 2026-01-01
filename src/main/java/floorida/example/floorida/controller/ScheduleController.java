@@ -23,7 +23,7 @@ import jakarta.validation.Valid;
 @RestController
 @RequestMapping("/api/schedules")
 @Validated
-@Tag(name = "일정 관리", description = "일정(Schedule)과 세부 계획(Floor) 생성, 조회 API. 개인 또는 팀 일정을 수동/AI로 생성할 수 있습니다.")
+@Tag(name = "일정 관리", description = "일정(Schedule)과 세부 계획(Floor) 생성, 조회 API. 현재는 개인 일정만 지원합니다.")
 @SecurityRequirement(name = "Bearer Authentication")
 public class ScheduleController {
 
@@ -41,8 +41,7 @@ public class ScheduleController {
             
             **특징:**
             - 세부 계획(floors)은 선택 사항이며, 생략 시 빈 일정만 생성됩니다
-            - 팀 일정인 경우 `teamId`를 포함하면 팀원들과 공유됩니다
-            - 개인 일정인 경우 `teamId`는 null로 설정합니다
+            - 현재는 개인 일정만 지원하며 `teamId`는 null이어야 합니다
             - `color`는 HEX 코드 형식(예: #FF5733)으로 입력 가능합니다
             
             **권한:**
@@ -134,7 +133,6 @@ public class ScheduleController {
             
             **선택 필드:**
             - `color`: 일정 색상 (HEX 코드, 예: #FF5733)
-            - `teamId`: 팀 ID (팀 일정인 경우만 입력)
             - `floors`: 세부 계획 배열 (각 floor는 title 필수, scheduledDate 선택)
             """,
         required = true,
@@ -163,32 +161,6 @@ public class ScheduleController {
                             {
                               "title": "실전 모의고사 3회",
                               "scheduledDate": "2025-10-26"
-                            }
-                          ]
-                        }
-                        """
-                ),
-                @ExampleObject(
-                    name = "팀 일정 예시",
-                    value = """
-                        {
-                          "title": "팀 프로젝트 완성",
-                          "startDate": "2025-11-01",
-                          "endDate": "2025-11-30",
-                          "color": "#1E90FF",
-                          "teamId": 5,
-                          "floors": [
-                            {
-                              "title": "기획안 작성",
-                              "scheduledDate": "2025-11-01"
-                            },
-                            {
-                              "title": "프론트엔드 개발",
-                              "scheduledDate": "2025-11-10"
-                            },
-                            {
-                              "title": "백엔드 API 개발",
-                              "scheduledDate": "2025-11-15"
                             }
                           ]
                         }
@@ -350,7 +322,6 @@ public class ScheduleController {
         - `endDate`: 종료일 (YYYY-MM-DD)
             
         **선택 필드:**
-        - `teamId`: 팀 일정인 경우 팀 ID
         - `color`: 일정 색상 (미입력 시 서버가 자동 랜덤 배정)
             
         **Goal 작성 팁:**
@@ -389,17 +360,6 @@ public class ScheduleController {
               """
           ),
           @ExampleObject(
-            name = "프로젝트 목표 (팀 일정)",
-            value = """
-              {
-                "goal": "팀 협업 프로젝트 MVP 개발 완료",
-                "startDate": "2025-11-15",
-                "endDate": "2025-12-15",
-                "teamId": 3
-              }
-              """
-          ),
-          @ExampleObject(
             name = "자격증 준비 (색상 자동)",
             value = """
               {
@@ -425,7 +385,6 @@ public class ScheduleController {
             
             **조회 가능 조건:**
             - 본인이 생성한 일정만 조회 가능
-            - 팀 일정의 경우 해당 팀 멤버만 조회 가능 (추후 구현 예정)
             
             **반환 정보:**
             - 일정 기본 정보 (제목, 기간, 색상 등)
@@ -670,7 +629,6 @@ public class ScheduleController {
             **권한:**
             - JWT 토큰 필수
             - 본인이 생성한 일정만 삭제 가능
-            - 팀 일정의 경우 생성자만 삭제 가능
             """
       )
       @ApiResponses({

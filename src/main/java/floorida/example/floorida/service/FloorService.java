@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import floorida.example.floorida.dto.FloorResponse;
+import floorida.example.floorida.dto.FloorUpdateRequest;
 import floorida.example.floorida.entity.FloorPlan;
 import floorida.example.floorida.entity.FloorStatus;
 import floorida.example.floorida.entity.User;
@@ -98,6 +99,26 @@ public class FloorService {
         // 출석 뱃지 지급 (가정: 하루 1개 이상 완료 = 출석)
         LocalDate attendanceDate = floor.getScheduledDate() != null ? floor.getScheduledDate() : LocalDate.now();
         badgeService.onAttendance(user, attendanceDate);
+    }
+
+    /**
+     * Floor 제목 수정
+     */
+    @Transactional
+    public FloorResponse updateFloor(Long floorId, FloorUpdateRequest req) {
+        User user = currentUserService.getCurrentUser()
+                .orElseThrow(() -> new IllegalStateException("Unauthenticated"));
+
+        FloorPlan floor = floorPlanRepository.findById(floorId)
+                .orElseThrow(() -> new IllegalArgumentException("Floor not found"));
+
+        if (!floor.getCreatorUserId().equals(user.getUserId())) {
+            throw new IllegalArgumentException("Not authorized to update this floor");
+        }
+
+        floor.setTitle(req.getTitle());
+        FloorPlan saved = floorPlanRepository.save(floor);
+        return toResponse(saved);
     }
 
     private FloorResponse toResponse(FloorPlan floor) {

@@ -17,8 +17,8 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/characters")
 @RequiredArgsConstructor
-@Tag(name = "캐릭터", description = "사용자 캐릭터 조회 API")
-@SecurityRequirement(name = "Bearer Authentication")
+@Tag(name = "캐릭터", description = "사용자 캐릭터(및 장착 정보) 조회 API")
+@SecurityRequirement(name = "bearerAuth")
 public class CharacterController {
     
     private final CharacterService characterService;
@@ -27,11 +27,12 @@ public class CharacterController {
     @Operation(
         summary = "내 캐릭터 조회",
         description = """
-            현재 로그인한 사용자의 캐릭터 이미지를 조회합니다.
+            현재 로그인한 사용자의 **민무늬(기본) 캐릭터 이미지**를 조회합니다.
             
             **특징:**
-            - 회원가입 시 자동으로 기본 캐릭터 할당
-            - AWS S3에 저장된 이미지 URL 반환
+            - 캐릭터가 없으면 서버에서 기본 캐릭터를 자동 생성합니다.
+            - 이 API는 캐릭터의 **기본 이미지 URL만** 반환합니다.
+            - 악세사리/장착 아이템은 **별도 API**로 조회하고, 프론트에서 합쳐서 렌더링합니다.
             
             **권한:**
             - JWT 토큰 필수
@@ -58,11 +59,6 @@ public class CharacterController {
         @ApiResponse(
             responseCode = "401",
             description = "인증 실패",
-            content = @Content(mediaType = "application/json")
-        ),
-        @ApiResponse(
-            responseCode = "404",
-            description = "캐릭터를 찾을 수 없음",
             content = @Content(mediaType = "application/json")
         )
     })

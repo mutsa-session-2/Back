@@ -2,6 +2,7 @@ package floorida.example.floorida.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -201,8 +202,12 @@ public class MeController {
     @PostMapping("/withdraw")
     @Operation(
         summary = "회원 탈퇴",
-        description = "현재 비밀번호를 확인한 뒤 계정 및 연관 데이터를 삭제합니다."
+        description = "현재 비밀번호를 확인한 뒤 계정 및 연관 데이터를 삭제합니다. (하위 호환용 엔드포인트)"
     )
+    @ApiResponses({
+        @ApiResponse(responseCode = "204", description = "탈퇴 성공"),
+        @ApiResponse(responseCode = "401", description = "인증 실패 또는 비밀번호 불일치", content = @Content(mediaType = "application/json"))
+    })
     public ResponseEntity<Void> withdraw(@Valid @RequestBody WithdrawRequest request) {
         User user = currentUserService.getCurrentUser()
                 .orElseThrow(() -> new IllegalStateException("Unauthenticated"));
@@ -212,6 +217,27 @@ public class MeController {
             return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException e) {
             // 비밀번호 불일치 등
+            return ResponseEntity.status(401).build();
+        }
+    }
+
+    @DeleteMapping
+    @Operation(
+        summary = "회원 탈퇴(삭제)",
+        description = "현재 비밀번호를 확인한 뒤 계정 및 연관 데이터를 삭제합니다. (REST 스타일)"
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "204", description = "탈퇴 성공"),
+        @ApiResponse(responseCode = "401", description = "인증 실패 또는 비밀번호 불일치", content = @Content(mediaType = "application/json"))
+    })
+    public ResponseEntity<Void> deleteMe(@Valid @RequestBody WithdrawRequest request) {
+        User user = currentUserService.getCurrentUser()
+                .orElseThrow(() -> new IllegalStateException("Unauthenticated"));
+
+        try {
+            accountService.withdraw(user, request.getPassword());
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
             return ResponseEntity.status(401).build();
         }
     }

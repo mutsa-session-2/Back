@@ -2,6 +2,7 @@ package floorida.example.floorida.Item.controller;
 
 import floorida.example.floorida.Item.UserDetails.CustomUserDetails;
 import floorida.example.floorida.Item.dto.response.ItemResponse;
+import floorida.example.floorida.Item.dto.response.MyItemResponse;
 import floorida.example.floorida.Item.entity.ItemType;
 import floorida.example.floorida.Item.service.ItemService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -109,4 +110,38 @@ public class ItemController {
     ) {
         itemService.unequipItem(userDetails.getUserId(), itemId);
     }
+
+
+    @Operation(
+            summary = "내가 보유한 아이템 조회",
+            description = "사용자가 보유 중인 모든 아이템을 조회합니다."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "보유 아이템 조회 성공"),
+            @ApiResponse(responseCode = "401", description = "인증 실패")
+    })
+    @GetMapping("/my")
+    public List<MyItemResponse> getMyItems(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        return itemService.getMyItems(userDetails.getUserId());
+    }
+
+    @Operation(
+            summary = "내가 장착한 아이템 조회",
+            description = "사용자가 현재 장착 중인 아이템만 조회합니다."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "장착 아이템 조회 성공"),
+            @ApiResponse(responseCode = "401", description = "인증 실패")
+    })
+    @GetMapping("/my/equipped")
+    public List<MyItemResponse> getMyEquippedItems(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        return itemService.getEquippedItems(userDetails.getUserId());
+    }
+
 }

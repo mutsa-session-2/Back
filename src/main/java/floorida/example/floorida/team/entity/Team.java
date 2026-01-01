@@ -2,11 +2,14 @@ package floorida.example.floorida.team.entity;
 
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -14,6 +17,7 @@ import java.util.Set;
 @Entity
 @Getter
 @Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "teams")
 public class Team {
     @Id
@@ -31,22 +35,32 @@ public class Team {
     private String description;
 
     @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = true, updatable = false)
     private Instant createdAt;
 
-    @Column(name = "join_code", nullable = false, unique = true, length = 20)
+    @Column(name = "join_code", nullable = true, unique = true, length = 20)
     private String joinCode;
 
-    @OneToMany(mappedBy = "team")
+    // 프로젝트 기간
+    @Column(name = "start_date", nullable = false)
+    private LocalDate startDate;
+
+    @Column(name = "end_date", nullable = false)
+    private LocalDate endDate;
+
+    @OneToMany(mappedBy = "team", fetch = FetchType.LAZY)
     private Set<TeamMember> teamMembers = new HashSet<>();
 
-    public Team(String name, String description, String joinCode) {
+    public Team(String name, String description,
+                LocalDate startDate, LocalDate endDate, String joinCode) {
+
         this.name = name;
-        this.description = description;
+        this.description = description; //사용 X, team name만으로 가기로
         this.joinCode = joinCode;
         this.level = 1;
+        this.startDate = startDate;
+        this.endDate = endDate;
     }
-
 
     public void increaseLevel() {
         this.level += 1;

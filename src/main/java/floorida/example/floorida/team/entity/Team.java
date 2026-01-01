@@ -35,10 +35,10 @@ public class Team {
     private String description;
 
     @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = true, updatable = false)
     private Instant createdAt;
 
-    @Column(name = "join_code", nullable = false, unique = true, length = 20)
+    @Column(name = "join_code", nullable = true, unique = true, length = 20)
     private String joinCode;
 
     // 프로젝트 기간

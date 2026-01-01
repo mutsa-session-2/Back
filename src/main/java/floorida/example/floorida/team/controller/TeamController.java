@@ -37,10 +37,10 @@ public class TeamController {
     public ResponseEntity<TeamCreateResponse> createTeam(@Valid @RequestBody TeamCreateRequest request) {
         User me = meOrThrow();
 
+        // null description 넘기지 않도록 (TeamService 오버로드 사용 권장)
         Long teamId = teamService.createTeam(
                 me.getUserId(),
                 request.getName(),
-                null, // description 안 쓰기로 했으니 null
                 request.getStartDate(),
                 request.getEndDate()
         );
@@ -55,7 +55,7 @@ public class TeamController {
     public ResponseEntity<?> joinTeam(@Valid @RequestBody TeamJoinRequest request) {
         User me = meOrThrow();
         teamService.joinTeam(me.getUserId(), request.getJoinCode());
-        return ResponseEntity.ok().build(); // 필요하면 메시지 DTO로 반환해도 됨
+        return ResponseEntity.ok().build();
     }
 
     // 3) 팀 멤버 목록 조회 (userId + role)
@@ -63,7 +63,10 @@ public class TeamController {
     public ResponseEntity<List<TeamMemberResponse>> getMembers(@PathVariable Long teamId) {
         User me = meOrThrow();
 
-        // 멤버만 접근 가능
+        // 팀 존재 확인 (404용)
+        teamService.getTeamOrThrow(teamId);
+
+        // 멤버만 접근 가능 (403용)
         teamService.getMember(teamId, me.getUserId());
 
         List<Object[]> rows = teamMemberRepository.findUserIdAndRoleByTeamId(teamId);
@@ -96,5 +99,28 @@ public class TeamController {
 
         return ResponseEntity.ok(result);
     }
+
+    // 5) 팀 단건 조회 (팀 기본 정보)
+    @GetMapping("/{teamId}")
+    public ResponseEntity<TeamResponse> getTeam(@PathVariable Long teamId) {
+        User me = meOrThrow();
+
+        // 팀 존재 확인 (404용)
+        Team team = teamService.getTeamOrThrow(teamId);
+
+        // 팀 멤버만 조회 가능 (403용)
+        teamService.getMember(teamId, me.getUserId());
+
+        return ResponseEntity.ok(new TeamResponse(
+                team.getId(),
+                team.getName(),
+                team.getLevel(),
+                team.getStartDate(),
+                team.getEndDate(),
+                team.getCreatedAt()
+        ));
+    }
 }
+
+
 

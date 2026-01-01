@@ -26,6 +26,12 @@ public class TeamService {
     //캘린더
     //진행도
 
+
+    public Long createTeam(Long userId, String name, LocalDate startDate, LocalDate endDate) {
+        return createTeam(userId, name, null, startDate, endDate);
+    }
+
+
     // 내 팀 조회
     @Transactional(readOnly = true)
     public Team getTeamOrThrow(Long teamId) {
@@ -80,6 +86,7 @@ public class TeamService {
 
         return team.getId();
     }
+
 
     // 초대코드 생성
     private String generateJoinCode() {

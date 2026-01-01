@@ -27,4 +27,6 @@ public interface UserItemRepository extends JpaRepository<UserItem, Long> {
             @Param("userId") Long userId,
             @Param("type") ItemType type
     );
+
+    List<UserItem> findAllByUserIdAndEquippedTrue(Long userId);
 }

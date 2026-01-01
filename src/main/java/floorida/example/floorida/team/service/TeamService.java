@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -24,12 +26,28 @@ public class TeamService {
     //캘린더
     //진행도
 
-    //권한 체크 - 멤버인지, 어드민인지
+    // 내 팀 조회
+    @Transactional(readOnly = true)
+    public Team getTeamOrThrow(Long teamId) {
+        return teamRepository.findById(teamId)
+                .orElseThrow(() -> new IllegalArgumentException("team not found"));
+    }
+
+    // 팀 멤버 목록
+    @Transactional(readOnly = true)
+    public List<TeamMember> getMembers(Long teamId) {
+        return teamMemberRepository.findByTeam_Id(teamId);
+    }
+
+    // 권한 체크 - 멤버인지
+    @Transactional(readOnly = true)
     public TeamMember getMember(Long teamId, Long userId) {
         return teamMemberRepository.findByTeam_IdAndUser_UserId(teamId, userId)
                 .orElseThrow(() -> new IllegalStateException("not a team member"));
     }
 
+    // 권한 체크 - admin/owner인지
+    @Transactional(readOnly = true)
     public void validateAdmin(Long teamId, Long userId) {
         TeamMember tm = getMember(teamId, userId);
         if (!"owner".equals(tm.getRole()) && !"admin".equals(tm.getRole())) {
@@ -37,15 +55,24 @@ public class TeamService {
         }
     }
 
+    // 팀 생성 (프로젝트 기간 포함)
+    public Long createTeam(Long userId,
+                           String name,
+                           String description,
+                           LocalDate startDate,
+                           LocalDate endDate) {
 
-    //팀 생성
-    public Long createTeam(Long userId, String name, String description) {
+        if (startDate.isAfter(endDate)) {
+            throw new IllegalArgumentException("startDate must be <= endDate");
+        }
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("user not found"));
 
         String joinCode = generateJoinCode();
 
-        Team team = new Team(name, description, joinCode);
+        // 생성자 파라미터 순서: (name, description, startDate, endDate, joinCode)
+        Team team = new Team(name, description, startDate, endDate, joinCode);
         teamRepository.save(team);
 
         TeamMember owner = new TeamMember(team, user, "owner");
@@ -54,7 +81,7 @@ public class TeamService {
         return team.getId();
     }
 
-    //초대 코드 생성
+    // 초대코드 생성
     private String generateJoinCode() {
         String code;
         do {
@@ -65,7 +92,7 @@ public class TeamService {
         return code;
     }
 
-    //팀 초대
+    // 팀 참가
     public void joinTeam(Long userId, String joinCode) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("user not found"));
@@ -76,7 +103,6 @@ public class TeamService {
         if (teamMemberRepository.existsByTeam_IdAndUser_UserId(team.getId(), userId)) {
             throw new IllegalStateException("already joined this team");
         }
-
 
         TeamMember member = new TeamMember(team, user, "member");
         teamMemberRepository.save(member);

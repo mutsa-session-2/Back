@@ -1,75 +1,100 @@
 package floorida.example.floorida.team.controller;
 
+import floorida.example.floorida.entity.User;
+import floorida.example.floorida.service.CurrentUserService;
+import floorida.example.floorida.team.dto.*;
 import floorida.example.floorida.team.entity.Team;
-import floorida.example.floorida.team.entity.TeamMember;
 import floorida.example.floorida.team.repository.TeamMemberRepository;
 import floorida.example.floorida.team.repository.TeamRepository;
 import floorida.example.floorida.team.service.TeamService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/api/teams")
+@RequiredArgsConstructor
+@Validated
 public class TeamController {
 
     private final TeamService teamService;
     private final TeamRepository teamRepository;
     private final TeamMemberRepository teamMemberRepository;
+    private final CurrentUserService currentUserService;
 
-
+    private User meOrThrow() {
+        return currentUserService.getCurrentUser()
+                .orElseThrow(() -> new IllegalStateException("unauthorized"));
+    }
 
     // 1) 팀 생성
     @PostMapping
-    public ResponseEntity<CreateTeamResponse> create(@RequestBody CreateTeamRequest req) {
-        Long teamId = teamService.createTeam(req.userId(), req.name(), req.description());
+    public ResponseEntity<TeamCreateResponse> createTeam(@Valid @RequestBody TeamCreateRequest request) {
+        User me = meOrThrow();
 
-        // 생성 후 joinCode를 응답으로 주면 테스트가 편함
-        Team team = teamRepository.findById(teamId)
-                .orElseThrow(() -> new IllegalStateException("team not found"));
+        Long teamId = teamService.createTeam(
+                me.getUserId(),
+                request.getName(),
+                null, // description 안 쓰기로 했으니 null
+                request.getStartDate(),
+                request.getEndDate()
+        );
 
-        return ResponseEntity.ok(new CreateTeamResponse(teamId, team.getJoinCode()));
+        Team team = teamService.getTeamOrThrow(teamId);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new TeamCreateResponse(teamId, team.getJoinCode()));
     }
 
     // 2) 팀 가입 (초대코드)
     @PostMapping("/join")
-    public ResponseEntity<Void> join(@RequestBody JoinTeamRequest req) {
-        teamService.joinTeam(req.userId(), req.joinCode());
-        return ResponseEntity.ok().build();
+    public ResponseEntity<?> joinTeam(@Valid @RequestBody TeamJoinRequest request) {
+        User me = meOrThrow();
+        teamService.joinTeam(me.getUserId(), request.getJoinCode());
+        return ResponseEntity.ok().build(); // 필요하면 메시지 DTO로 반환해도 됨
     }
 
-    // 3) 팀 멤버 목록 조회 (테스트용)
+    // 3) 팀 멤버 목록 조회 (userId + role)
     @GetMapping("/{teamId}/members")
-    public ResponseEntity<List<TeamMemberDto>> members(@PathVariable Long teamId) {
-        List<TeamMember> list = teamMemberRepository.findByTeam_Id(teamId);
-        return ResponseEntity.ok(
-                list.stream().map(TeamMemberDto::from).toList()
-        );
+    public ResponseEntity<List<TeamMemberResponse>> getMembers(@PathVariable Long teamId) {
+        User me = meOrThrow();
+
+        // 멤버만 접근 가능
+        teamService.getMember(teamId, me.getUserId());
+
+        List<Object[]> rows = teamMemberRepository.findUserIdAndRoleByTeamId(teamId);
+
+        List<TeamMemberResponse> result = rows.stream()
+                .map(r -> new TeamMemberResponse((Long) r[0], (String) r[1]))
+                .toList();
+
+        return ResponseEntity.ok(result);
     }
 
-    // 4) 권한 체크 테스트용 엔드포인트 (owner/admin만 200)
-    @GetMapping("/{teamId}/admin-check")
-    public ResponseEntity<String> adminCheck(@PathVariable Long teamId,
-                                             @RequestParam Long userId) {
-        teamService.validateAdmin(teamId, userId);
-        return ResponseEntity.ok("OK");
-    }
+    // 4) 내 팀 목록 조회
+    @GetMapping
+    public ResponseEntity<List<MyTeamResponse>> myTeams() {
+        User me = meOrThrow();
 
-    // ===== DTOs =====
-    public record CreateTeamRequest(Long userId, String name, String description) {}
-    public record CreateTeamResponse(Long teamId, String joinCode) {}
-    public record JoinTeamRequest(Long userId, String joinCode) {}
+        List<Long> teamIds = teamMemberRepository.findTeamIdsByUserId(me.getUserId());
+        if (teamIds.isEmpty()) return ResponseEntity.ok(List.of());
 
-    public record TeamMemberDto(Long teamMemberId, Long userId, String role) {
-        static TeamMemberDto from(TeamMember tm) {
-            return new TeamMemberDto(
-                    tm.getId(),
-                    tm.getUser().getUserId(), // User 엔티티 PK 이름이 userId라고 하셨으니
-                    tm.getRole()
-            );
-        }
+        List<Team> teams = teamRepository.findByIdIn(teamIds);
+
+        List<MyTeamResponse> result = teams.stream()
+                .map(t -> new MyTeamResponse(
+                        t.getId(),
+                        t.getName(),
+                        t.getStartDate(),
+                        t.getEndDate()
+                ))
+                .toList();
+
+        return ResponseEntity.ok(result);
     }
 }
+

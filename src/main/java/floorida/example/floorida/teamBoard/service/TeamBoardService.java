@@ -65,10 +65,15 @@ public class TeamBoardService {
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new IllegalArgumentException("팀 없음"));
 
-        if (!team.getMembers().contains(user)) {
+        boolean isMember = team.getTeamMembers().stream()
+                .anyMatch(tm -> tm.getUser().getUserId().longValue() == userId.longValue()
+                        && (tm.getRole().equals("member")
+                        || tm.getRole().equals("admin")
+                        || tm.getRole().equals("owner")));
+
+        if (!isMember) {
             throw new IllegalArgumentException("팀 멤버가 아님");
         }
-
         TeamBoard board = new TeamBoard(
                 team,
                 user,

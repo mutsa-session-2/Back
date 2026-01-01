@@ -32,4 +32,5 @@ public class GlobalExceptionHandler {
                 .badRequest()
                 .body(Map.of("message", e.getMessage()));
     }
+
 }

@@ -1,6 +1,8 @@
 package floorida.example.floorida.Item.service;
 
+import floorida.example.floorida.Exception.Item.AlreadyOwnedItemException;
 import floorida.example.floorida.Item.dto.response.ItemResponse;
+import floorida.example.floorida.Item.dto.response.MyItemResponse;
 import floorida.example.floorida.Item.entity.Item;
 import floorida.example.floorida.Item.entity.ItemType;
 import floorida.example.floorida.Item.entity.UserItem;
@@ -51,7 +53,7 @@ public class ItemServiceImpl implements ItemService {
                         item.getPrice(),
                         item.getImgUrl(),
                         item.getDescription(),
-                        ownedItemIds.contains(item.getItemId())
+                        item.getPrice() == 0 || ownedItemIds.contains(item.getItemId())
                 ))
                 .toList();
     }
@@ -71,7 +73,7 @@ public class ItemServiceImpl implements ItemService {
                 userItemRepository.findByUserIdAndItem_ItemId(userId, itemId).isPresent();
 
         if (alreadyOwned) {
-            throw new IllegalStateException("이미 구매한 아이템입니다.");
+            throw new AlreadyOwnedItemException("이미 보유한 아이템입니다.");
         }
 
         // 3️⃣ 유저 프로필 조회
@@ -119,4 +121,46 @@ public class ItemServiceImpl implements ItemService {
 
         userItem.unequip();
     }
+
+    /**
+     * 내가 보유한 아이템 조회
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<MyItemResponse> getMyItems(Long userId) {
+
+        List<UserItem> userItems = userItemRepository.findAllByUserId(userId);
+
+        return userItems.stream()
+                .map(ui -> new MyItemResponse(
+                        ui.getItem().getItemId(),
+                        ui.getItem().getName(),
+                        ui.getItem().getType(),
+                        ui.getItem().getImgUrl(),
+                        ui.isEquipped()
+                ))
+                .toList();
+    }
+
+    /**
+     * 내가 장착한 아이템 조회
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<MyItemResponse> getEquippedItems(Long userId) {
+
+        List<UserItem> equippedItems =
+                userItemRepository.findAllByUserIdAndEquippedTrue(userId);
+
+        return equippedItems.stream()
+                .map(ui -> new MyItemResponse(
+                        ui.getItem().getItemId(),
+                        ui.getItem().getName(),
+                        ui.getItem().getType(),
+                        ui.getItem().getImgUrl(),
+                        true
+                ))
+                .toList();
+    }
+
 }

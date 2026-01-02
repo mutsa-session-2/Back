@@ -207,93 +207,10 @@ public class AiPlanningService {
     }
 
     private List<String> buildHeuristicTitles(String goal, int totalDays) {
-        String g = goal == null ? "" : goal.strip();
-        String gl = g.toLowerCase(Locale.ROOT);
-
-        if (gl.contains("spring") || gl.contains("스프링") || gl.contains("spring boot") || gl.contains("스프링부트") || gl.contains("스프링 부트")) {
-            return buildSpringBootTitles(totalDays);
-        }
-
-        List<String> base = List.of(
-            "목표 분석 + 학습 계획 세우기",
-            "핵심 개념 학습 + 요약 노트 작성",
-            "예제 따라하기(기본 실습)",
-            "작은 과제(미니 실습) 수행",
-            "오답/막힌 부분 정리 + 보완 학습",
-            "복습 + 체크리스트 점검",
-            "주간 회고 + 다음 주 목표 조정"
-        );
-
         List<String> titles = new ArrayList<>(totalDays);
         for (int i = 0; i < totalDays; i++) {
-            String t = base.get(i % base.size());
-            if (!g.isBlank()) {
-                titles.add(t + " (" + abbreviate(g, 24) + ")");
-            } else {
-                titles.add(t);
-            }
+            titles.add((i + 1) + "일 차");
         }
         return titles;
-    }
-
-    private List<String> buildSpringBootTitles(int totalDays) {
-        List<String> curriculum = List.of(
-            "개발 환경 세팅(JDK/Gradle/IDE) + 프로젝트 생성",
-            "Spring Boot 구조 이해 + 실행/설정(application.properties)",
-            "MVC 기초: Controller/RequestMapping 이해",
-            "DTO/Validation(@Valid) 적용해보기",
-            "REST API 설계 원칙 정리 + 응답 포맷 합의",
-            "JPA 기초: Entity/Repository 생성",
-            "연관관계 기초 + N+1 개념 맛보기",
-            "Service 계층 설계 + 트랜잭션(@Transactional)",
-            "에러 처리: 예외/에러 응답 포맷 정리",
-            "Swagger(OpenAPI) 문서화 정리",
-            "인증 기초: JWT 개념 + 필터 흐름 이해",
-            "Spring Security 설정 읽기 + 인증/인가 구분",
-            "테스트 기초: 단위 테스트 vs 통합 테스트",
-            "Repository 테스트 작성 + 테스트 데이터 전략",
-            "API 테스트(Postman) 시나리오 작성",
-            "페이징/정렬/검색 기본 구현",
-            "파일 업로드/다운로드 기본 구현",
-            "환경변수/프로파일(dev/prod) 분리",
-            "로깅 전략: log level/민감정보 마스킹",
-            "성능 기초: 쿼리 로그로 병목 찾기",
-            "배포 준비: jar 빌드 + 실행 옵션 정리",
-            "Docker 기초: Dockerfile 작성/빌드",
-            "배포 체크리스트 작성 + 위험요소 점검",
-            "CI 기초: Gradle test 자동화",
-            "미니 프로젝트: CRUD API 스펙 정의",
-            "미니 프로젝트: 구현 + 예외/검증",
-            "미니 프로젝트: 테스트/문서화",
-            "미니 프로젝트: 리팩터링(레이어/네이밍)",
-            "최종 회고 + 다음 단계(고급 JPA/보안/배포) 계획"
-        );
-
-        List<String> titles = new ArrayList<>(totalDays);
-        for (int i = 0; i < totalDays; i++) {
-            if (i < curriculum.size()) {
-                titles.add(curriculum.get(i));
-                continue;
-            }
-            int cycle = (i - curriculum.size()) % 7;
-            String t = switch (cycle) {
-                case 0 -> "심화: JPA 연관관계/쿼리 튜닝 복습";
-                case 1 -> "심화: Security 인가 정책/권한 설계";
-                case 2 -> "심화: 테스트 커버리지 개선";
-                case 3 -> "심화: 예외/에러 표준화";
-                case 4 -> "심화: 배포 파이프라인 정리";
-                case 5 -> "심화: 작은 기능 추가(개선사항 반영)";
-                default -> "회고 + 다음 목표 업데이트";
-            };
-            titles.add(t);
-        }
-        return titles;
-    }
-
-    private String abbreviate(String s, int max) {
-        if (s == null) return "";
-        String trimmed = s.strip();
-        if (trimmed.length() <= max) return trimmed;
-        return trimmed.substring(0, Math.max(0, max - 1)) + "…";
     }
 }

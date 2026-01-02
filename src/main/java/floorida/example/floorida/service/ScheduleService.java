@@ -83,6 +83,8 @@ public class ScheduleService {
 
         // Call AI to get suggested floors
         List<AiPlanningService.AiFloor> aiFloors = aiPlanningService.plan(req.getGoal(), req.getStartDate(), req.getEndDate());
+        // Normalize: ensure one floor per date and never store generic "단계 n" titles
+        aiFloors = aiPlanningService.sanitizeAiFloors(req.getGoal(), req.getStartDate(), req.getEndDate(), aiFloors);
 
         Schedule schedule = new Schedule();
         schedule.setCreatorUserId(user.getUserId());

@@ -33,7 +33,7 @@ public class ScheduleController {
         this.scheduleService = scheduleService;
     }
 
-    @PostMapping
+    @PostMapping({"", "/"})
     @Operation(
         summary = "수동으로 일정 생성",
         description = """
@@ -171,7 +171,7 @@ public class ScheduleController {
         return ResponseEntity.ok(scheduleService.createManual(req));
     }
 
-    @PostMapping("/ai")
+    @PostMapping({"/ai", "/ai/"})
     @Operation(
         summary = "AI로 일정 자동 생성",
         description = """

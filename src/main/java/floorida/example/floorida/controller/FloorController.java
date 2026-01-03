@@ -211,9 +211,17 @@ public class FloorController {
 
     @PatchMapping("/{floorId}")
     @Operation(
-        summary = "Floor 제목 수정",
+        summary = "Floor 수정 (제목/날짜)",
         description = """
-            지정한 Floor(세부 일정)의 제목을 수정합니다.
+            지정한 Floor(세부 일정)의 제목과/또는 날짜를 수정합니다.
+
+            - 제목만 수정: `{ "title": "새 제목" }`
+            - 날짜만 이동: `{ "scheduledDate": "2025-11-20" }`
+            - 둘 다 수정: `{ "title": "새 제목", "scheduledDate": "2025-11-20" }`
+
+            **제약:**
+            - 날짜를 변경하는 경우, 해당 Floor의 일정 기간(startDate~endDate) 안에서만 이동 가능합니다
+            - 같은 일정(schedule) 안에서 같은 날짜에 Floor는 1개만 허용됩니다
 
             **사용 사례:**
             - 캘린더/프로젝트 수정 화면에서 일차(할 일) 내용을 원하는 텍스트로 변경

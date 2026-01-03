@@ -715,4 +715,6 @@ public class ScheduleController {
         scheduleService.delete(id);
         return ResponseEntity.noContent().build();
       }
+
+
 }

@@ -6,6 +6,7 @@ import floorida.example.floorida.team.entity.Team;
 import floorida.example.floorida.team.repository.TeamRepository;
 import floorida.example.floorida.teamBoard.dto.request.TeamBoardCreateRequest;
 import floorida.example.floorida.teamBoard.dto.response.TeamBoardCreateResponse;
+import floorida.example.floorida.teamBoard.dto.response.TeamBoardDetailResponse;
 import floorida.example.floorida.teamBoard.dto.response.TeamBoardListResponse;
 import floorida.example.floorida.teamBoard.entity.TeamBoard;
 import floorida.example.floorida.teamBoard.repository.TeamBoardListView;
@@ -65,15 +66,7 @@ public class TeamBoardService {
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new IllegalArgumentException("팀 없음"));
 
-        boolean isMember = team.getTeamMembers().stream()
-                .anyMatch(tm -> tm.getUser().getUserId().longValue() == userId.longValue()
-                        && (tm.getRole().equals("member")
-                        || tm.getRole().equals("admin")
-                        || tm.getRole().equals("owner")));
-
-        if (!isMember) {
-            throw new IllegalArgumentException("팀 멤버가 아님");
-        }
+        validateTeamMember(team, userId);
         TeamBoard board = new TeamBoard(
                 team,
                 user,
@@ -87,4 +80,45 @@ public class TeamBoardService {
                 saved.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant()
         );
     }
+
+    //단건 조회
+    @Transactional(readOnly = true)
+    public TeamBoardDetailResponse getBoardDetail(
+            Long teamId,
+            Long boardId,
+            Long userId
+    ) {
+        // 1️⃣ 팀 + 유저 검증
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new IllegalArgumentException("팀 없음"));
+
+        validateTeamMember(team, userId);
+
+        // 2️⃣ 게시글 조회 (teamId + boardId)
+        TeamBoard board = teamBoardRepository
+                .findByIdAndTeamId(boardId, teamId)
+                .orElseThrow(() -> new IllegalArgumentException("게시글 없음"));
+
+        // 3️⃣ Entity → DTO
+        return TeamBoardDetailResponse.builder()
+                .boardId(board.getId())
+                .teamId(teamId)
+                .content(board.getContent())
+                .writerId(board.getUser().getUserId())
+                .writerName(board.getUser().getUsername())
+                .createdAt(board.getCreatedAt())
+                .build();
+    }
+
+    private void validateTeamMember(Team team, Long userId) {
+        boolean isMember = team.getTeamMembers().stream()
+                .anyMatch(tm ->
+                        tm.getUser().getUserId().equals(userId)
+                );
+
+        if (!isMember) {
+            throw new IllegalArgumentException("팀 멤버가 아닙니다.");
+        }
+    }
+
 }

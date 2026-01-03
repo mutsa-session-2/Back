@@ -3,6 +3,7 @@ package floorida.example.floorida.teamBoard.controller;
 import floorida.example.floorida.Item.UserDetails.CustomUserDetails;
 import floorida.example.floorida.teamBoard.dto.request.TeamBoardCreateRequest;
 import floorida.example.floorida.teamBoard.dto.response.TeamBoardCreateResponse;
+import floorida.example.floorida.teamBoard.dto.response.TeamBoardDetailResponse;
 import floorida.example.floorida.teamBoard.dto.response.TeamBoardListResponse;
 import floorida.example.floorida.teamBoard.service.TeamBoardService;
 import jakarta.validation.Valid;
@@ -64,5 +65,30 @@ public class TeamBoardController{
         return ResponseEntity
                 .created(URI.create("/teams/" + teamId + "/boards/" + response.getBoardId()))
                 .body(response);
+    }
+
+    /**
+     * 📌 게시글 단건 조회
+     */
+    @GetMapping("/{boardId}")
+    @Operation(summary = "게시글 단건 조회", description = "팀 게시판의 특정 게시글을 조회합니다.")
+    public ResponseEntity<TeamBoardDetailResponse> getBoardDetail(
+            @Parameter(description = "팀 ID", example = "1")
+            @PathVariable Long teamId,
+
+            @Parameter(description = "게시글 ID", example = "10")
+            @PathVariable Long boardId,
+
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        TeamBoardDetailResponse response =
+                teamBoardService.getBoardDetail(
+                        teamId,
+                        boardId,
+                        userDetails.getUserId()
+                );
+
+        return ResponseEntity.ok(response);
     }
 }

@@ -9,6 +9,7 @@ import floorida.example.floorida.teamBoard.dto.response.TeamBoardCreateResponse;
 import floorida.example.floorida.teamBoard.dto.response.TeamBoardDetailResponse;
 import floorida.example.floorida.teamBoard.dto.response.TeamBoardListResponse;
 import floorida.example.floorida.teamBoard.entity.TeamBoard;
+import floorida.example.floorida.teamBoard.repository.CommentRepository;
 import floorida.example.floorida.teamBoard.repository.TeamBoardListView;
 import floorida.example.floorida.teamBoard.repository.TeamBoardRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,8 @@ public class TeamBoardService {
     private final TeamBoardRepository teamBoardRepository;
     private final UserRepository userRepository;
     private final TeamRepository teamRepository;
+    private final CommentRepository commentRepository;
+
     /**
      * 📌 팀 게시판 목록 조회
      */
@@ -94,21 +97,27 @@ public class TeamBoardService {
 
         validateTeamMember(team, userId);
 
-        // 2️⃣ 게시글 조회 (teamId + boardId)
+        // 2️⃣ 게시글 조회
         TeamBoard board = teamBoardRepository
                 .findByIdAndTeamId(boardId, teamId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글 없음"));
 
-        // 3️⃣ Entity → DTO
+        // 3️⃣ 댓글 수 조회
+        long commentCount = commentRepository.countByBoardId(boardId);
+
+        // 4️⃣ Entity → DTO
         return TeamBoardDetailResponse.builder()
                 .boardId(board.getId())
                 .teamId(teamId)
                 .content(board.getContent())
                 .writerId(board.getUser().getUserId())
                 .writerName(board.getUser().getUsername())
-                .createdAt(board.getCreatedAt())
+                .likeCount(board.getLikeCount())     // ✅ 추가
+                .commentCount(commentCount)          // ✅ 추가
+                .createdAt(board.getCreatedAt())// ✅ 추가
                 .build();
     }
+
 
     private void validateTeamMember(Team team, Long userId) {
         boolean isMember = team.getTeamMembers().stream()

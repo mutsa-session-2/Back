@@ -28,9 +28,6 @@ public class TeamBoardLike {
     @JoinColumn(name = "user_id")
     private User user;
 
-    @Column(nullable = false, updatable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
-    private LocalDateTime createdAt;
-
     public TeamBoardLike(TeamBoard board, User user) {
         this.board = board;
         this.user = user;

@@ -1,5 +1,6 @@
 package floorida.example.floorida.teamBoard.dto.response;
 
+
 import lombok.Builder;
 import lombok.Getter;
 
@@ -7,18 +8,16 @@ import java.time.LocalDateTime;
 
 @Getter
 @Builder
-public class TeamBoardDetailResponse {
+public class TeamBoardCommentDetailResponse {
+
+    private Long commentId;
 
     private Long boardId;
-    private Long teamId;
-
-    private String content;
 
     private Long writerId;
     private String writerName;
 
-    private int likeCount;
-    private long commentCount;
+    private String content;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

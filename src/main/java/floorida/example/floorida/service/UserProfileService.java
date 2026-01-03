@@ -1,5 +1,6 @@
 package floorida.example.floorida.service;
 
+import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,9 +12,11 @@ import floorida.example.floorida.repository.UserProfileRepository;
 public class UserProfileService {
 
     private final UserProfileRepository userProfileRepository;
+    private final EntityManager entityManager;
 
-    public UserProfileService(UserProfileRepository userProfileRepository) {
+    public UserProfileService(UserProfileRepository userProfileRepository, EntityManager entityManager) {
         this.userProfileRepository = userProfileRepository;
+        this.entityManager = entityManager;
     }
 
     /**
@@ -22,13 +25,27 @@ public class UserProfileService {
      */
     @Transactional
     public void ensureSignupBonusOnFirstLogin(User user) {
+        if (user == null || user.getUserId() == null) {
+            throw new IllegalArgumentException("User is required");
+        }
+
         userProfileRepository.findById(user.getUserId())
                 .orElseGet(() -> {
                     UserProfile profile = new UserProfile();
-                    profile.setUser(user);
+                    // @MapsId만 믿으면 환경/상태에 따라 userId가 null로 남아
+                    // 저장 시 'ids must be manually assigned' 류의 예외가 발생할 수 있어 명시적으로 세팅합니다.
+                    profile.setUserId(user.getUserId());
+                    // authenticateOrThrow()에서 읽어온 User는 이 트랜잭션 밖에서 로드되어 detached일 수 있으므로
+                    // persist 시 문제가 생기지 않게 영속 상태 참조로 연결합니다.
+                    User managedUserRef = entityManager.getReference(User.class, user.getUserId());
+                    profile.setUser(managedUserRef);
                     profile.setPoints(50); // 가입 + 첫 로그인 보너스
                     profile.setPersonalLevel(1);
-                    return userProfileRepository.save(profile);
+                    // PK가 이미 채워진 엔티티를 save()하면 merge()를 타면서
+                    // 'unsaved-value mapping was incorrect' / StaleObjectStateException 이 날 수 있습니다.
+                    // 신규 생성 케이스는 persist()로 명시적으로 INSERT 합니다.
+                    entityManager.persist(profile);
+                    return profile;
                 });
     }
 

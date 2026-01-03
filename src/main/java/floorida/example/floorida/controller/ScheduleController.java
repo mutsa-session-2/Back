@@ -33,7 +33,7 @@ public class ScheduleController {
         this.scheduleService = scheduleService;
     }
 
-    @PostMapping({"", "/"})
+    @PostMapping("")
     @Operation(
         summary = "수동으로 일정 생성",
         description = """
@@ -171,7 +171,13 @@ public class ScheduleController {
         return ResponseEntity.ok(scheduleService.createManual(req));
     }
 
-    @PostMapping({"/ai", "/ai/"})
+    @PostMapping("/")
+    @Operation(hidden = true)
+    public ResponseEntity<ScheduleResponse> createManualTrailingSlash(@Valid @RequestBody ScheduleCreateRequest req) {
+      return createManual(req);
+    }
+
+    @PostMapping("/ai")
     @Operation(
         summary = "AI로 일정 자동 생성",
         description = """
@@ -360,6 +366,12 @@ public class ScheduleController {
     )
     public ResponseEntity<ScheduleResponse> createWithAi(@Valid @RequestBody AiScheduleRequest req) {
         return ResponseEntity.ok(scheduleService.createWithAi(req));
+    }
+
+    @PostMapping("/ai/")
+    @Operation(hidden = true)
+    public ResponseEntity<ScheduleResponse> createWithAiTrailingSlash(@Valid @RequestBody AiScheduleRequest req) {
+      return createWithAi(req);
     }
 
     @GetMapping("/{id}")

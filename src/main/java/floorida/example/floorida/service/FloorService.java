@@ -116,7 +116,32 @@ public class FloorService {
             throw new IllegalArgumentException("Not authorized to update this floor");
         }
 
-        floor.setTitle(req.getTitle());
+        if (req.getTitle() != null && !req.getTitle().isBlank()) {
+            floor.setTitle(req.getTitle());
+        }
+
+        if (req.getScheduledDate() != null) {
+            var schedule = floor.getSchedule();
+            if (schedule != null && schedule.getStartDate() != null && schedule.getEndDate() != null) {
+                if (req.getScheduledDate().isBefore(schedule.getStartDate()) || req.getScheduledDate().isAfter(schedule.getEndDate())) {
+                    throw new IllegalArgumentException("scheduledDate must be within schedule date range");
+                }
+            }
+
+            Long scheduleId = schedule != null ? schedule.getScheduleId() : null;
+            if (scheduleId != null) {
+                List<FloorPlan> sameDateFloors = floorPlanRepository
+                        .findBySchedule_ScheduleIdAndScheduledDate(scheduleId, req.getScheduledDate());
+                boolean hasOther = sameDateFloors.stream()
+                        .anyMatch(f -> f.getFloorId() != null && !f.getFloorId().equals(floorId));
+                if (hasOther) {
+                    throw new IllegalArgumentException("Another floor already exists for the given scheduledDate");
+                }
+            }
+
+            floor.setScheduledDate(req.getScheduledDate());
+        }
+
         FloorPlan saved = floorPlanRepository.save(floor);
         return toResponse(saved);
     }

@@ -27,6 +27,10 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
            where tm.team.id = :teamId
            """)
     List<Object[]> findUserIdAndRoleByTeamId(@Param("teamId") Long teamId);
+
+    void deleteByTeam_Id(Long teamId);
+
+
 }
 
 

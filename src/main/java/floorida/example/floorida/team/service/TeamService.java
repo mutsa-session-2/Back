@@ -115,5 +115,60 @@ public class TeamService {
         teamMemberRepository.save(member);
     }
 
+    // 권한 체크 - owner인지 (팀 삭제/퇴출용)
+    @Transactional(readOnly = true)
+    public void validateOwner(Long teamId, Long userId) {
+        TeamMember tm = getMember(teamId, userId);
+        if (!"owner".equals(tm.getRole())) {
+            throw new IllegalStateException("no permission");
+        }
+
+
+    }
+    // 팀 삭제 (팀장만)
+    public void deleteTeam(Long teamId, Long requesterUserId) {
+        getTeamOrThrow(teamId);
+        validateOwner(teamId, requesterUserId);
+
+        // FK 고려: 멤버 먼저 삭제 후 팀 삭제
+
+        // TODO: teamScheduleRepository.deleteByTeam_Id(teamId);
+        teamMemberRepository.deleteByTeam_Id(teamId);
+        teamRepository.deleteById(teamId);
+    }
+
+    // 팀원 퇴출 (팀장만)
+    public void kickMember(Long teamId, Long requesterUserId, Long targetUserId) {
+        getTeamOrThrow(teamId);
+        validateOwner(teamId, requesterUserId);
+
+        if (requesterUserId.equals(targetUserId)) {
+            throw new IllegalArgumentException("owner cannot kick self");
+        }
+
+        TeamMember target = getMember(teamId, targetUserId);
+
+        if ("owner".equals(target.getRole())) {
+            throw new IllegalArgumentException("cannot kick owner");
+        }
+
+        teamMemberRepository.delete(target);
+    }
+
+    // 팀 탈퇴 (멤버만) - 팀장은 불가
+    public void leaveTeam(Long teamId, Long userId) {
+        getTeamOrThrow(teamId);
+
+        TeamMember me = getMember(teamId, userId);
+
+        if ("owner".equals(me.getRole())) {
+            throw new IllegalArgumentException("owner cannot leave; delete team instead");
+        }
+
+        teamMemberRepository.delete(me);
+    }
+
+
+
 
 }

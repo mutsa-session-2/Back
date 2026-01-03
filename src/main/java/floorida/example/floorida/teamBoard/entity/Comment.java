@@ -31,20 +31,12 @@ public class Comment {
     @Column(nullable = false, length = 500)
     private String content;
 
-    // 생성 시간 (DB 자동)
-    @Column(
-            nullable = false,
-            updatable = false,
-            columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
-    )
+    // 생성 시간
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    // 수정 시간 (DB 자동)
-    @Column(
-            nullable = false,
-            columnDefinition =
-                    "TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
-    )
+    // 수정 시간
+    @Column(nullable = false)
     private LocalDateTime updatedAt;
 
     // 생성자
@@ -57,5 +49,18 @@ public class Comment {
     // 댓글 수정
     public void updateContent(String content) {
         this.content = content;
+    }
+
+    // insert 전 자동 실행
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    // update 전 자동 실행
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
     }
 }

@@ -12,7 +12,6 @@ public class TeamBoardDetailResponse {
     private Long boardId;
     private Long teamId;
 
-    private String title;
     private String content;
 
     private Long writerId;

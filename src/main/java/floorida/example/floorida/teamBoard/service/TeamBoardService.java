@@ -80,6 +80,7 @@ public class TeamBoardService {
                 saved.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant()
         );
     }
+
     //단건 조회
     @Transactional(readOnly = true)
     public TeamBoardDetailResponse getBoardDetail(

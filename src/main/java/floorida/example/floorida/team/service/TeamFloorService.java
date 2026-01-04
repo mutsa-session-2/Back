@@ -108,7 +108,32 @@ public class TeamFloorService {
     }
 
     /* =========================================================
-       3) 할 일 상세 조회 (member)
+       3) 팀 "미완료" 할 일 목록 조회 (member)
+       - completed=false만 모아서 보기
+       ========================================================= */
+    @Transactional(readOnly = true)
+    public List<TeamFloorResponse> listIncompleteTeamFloors(Long requesterUserId, Long teamId) {
+        teamService.getMember(teamId, requesterUserId);
+
+        return teamFloorRepository.findByTeam_IdAndCompletedFalseOrderByDueDateAscCreatedAtAsc(teamId)
+                .stream()
+                .map(f -> new TeamFloorResponse(
+                        f.getId(),
+                        f.getTeam().getId(),
+                        f.getTitle(),
+                        f.getDueDate(),
+                        f.isCompleted(),
+                        f.getCompletedAt(),
+                        teamFloorStatusRepository.findByIdTeamFloorId(f.getId())
+                                .stream()
+                                .map(s -> s.getUser().getUserId())
+                                .toList()
+                ))
+                .toList();
+    }
+
+    /* =========================================================
+       4) 할 일 상세 조회 (member)
        ========================================================= */
     @Transactional(readOnly = true)
     public TeamFloorDetailResponse getTeamFloorDetail(Long requesterUserId, Long teamId, Long teamFloorId) {
@@ -132,7 +157,7 @@ public class TeamFloorService {
     }
 
     /* =========================================================
-       4) 할 일 수정 (owner)
+       5) 할 일 수정 (owner)
        - 제목/마감일 수정
        - dueDate는 팀 프로젝트 기간 내
        ========================================================= */
@@ -152,15 +177,12 @@ public class TeamFloorService {
             }
         }
 
-        // TeamFloor 엔티티에 setter가 없다면, setter 추가하거나 update 메서드로 바꾸면 됨.
         floor.setTitle(req.getTitle());
         floor.setDueDate(dueDate);
-
-        // dirty checking으로 자동 반영
     }
 
     /* =========================================================
-       5) 할 일 삭제 (owner)
+       6) 할 일 삭제 (owner)
        - 배정 매핑 먼저 삭제 후 할 일 삭제
        ========================================================= */
     public void deleteTeamFloor(Long requesterUserId, Long teamFloorId) {
@@ -170,15 +192,13 @@ public class TeamFloorService {
         Long teamId = floor.getTeam().getId();
         teamService.validateOwner(teamId, requesterUserId);
 
-        // FK 고려: 상태(매핑) 먼저 삭제
         teamFloorStatusRepository.deleteByIdTeamFloorId(teamFloorId);
         teamFloorRepository.delete(floor);
     }
 
     /* =========================================================
-       6) 배정자 변경 (owner)
+       7) 배정자 변경 (owner)
        - 빈 배열 허용: 미정으로 만들기 가능
-       - 기존 배정 매핑 삭제 후 새로 insert
        ========================================================= */
     public void updateAssignees(Long requesterUserId, Long teamFloorId, TeamFloorAssigneesUpdateRequest req) {
         TeamFloor floor = teamFloorRepository.findById(teamFloorId)
@@ -187,7 +207,6 @@ public class TeamFloorService {
         Long teamId = floor.getTeam().getId();
         teamService.validateOwner(teamId, requesterUserId);
 
-        // 기존 매핑 삭제
         teamFloorStatusRepository.deleteByIdTeamFloorId(teamFloorId);
 
         List<Long> newIds = req.getAssigneeUserIds() == null
@@ -195,7 +214,6 @@ public class TeamFloorService {
                 : req.getAssigneeUserIds();
 
         for (Long uid : newIds.stream().distinct().toList()) {
-            // 팀 멤버인지 검증
             teamService.getMember(teamId, uid);
 
             User user = userRepository.findById(uid)
@@ -214,7 +232,7 @@ public class TeamFloorService {
     }
 
     /* =========================================================
-       7) 완료 처리 (배정자 OR 팀장)
+       8) 완료 처리 (배정자 OR 팀장)
        ========================================================= */
     public CompleteResult complete(Long requesterUserId, Long teamFloorId) {
         TeamFloor floor = teamFloorRepository.findById(teamFloorId)
@@ -249,7 +267,7 @@ public class TeamFloorService {
     }
 
     /* =========================================================
-       8) 완료 취소 (배정자 OR 팀장)
+       9) 완료 취소 (배정자 OR 팀장)
        ========================================================= */
     public CancelResult cancel(Long requesterUserId, Long teamFloorId) {
         TeamFloor floor = teamFloorRepository.findById(teamFloorId)
@@ -291,4 +309,3 @@ public class TeamFloorService {
         private boolean levelDown;
     }
 }
-

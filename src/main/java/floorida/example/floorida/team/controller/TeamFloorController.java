@@ -84,7 +84,26 @@ public class TeamFloorController {
         return ResponseEntity.ok(teamFloorService.listTeamFloors(me.getUserId(), teamId));
     }
 
-    // 3) 할 일 상세 조회 (member)
+    // 3) 팀 "미완료" 할 일 목록 조회 (member)
+    @GetMapping("/{teamId}/floors/incomplete")
+    @Operation(
+            summary = "팀 미완료 할 일 목록 조회",
+            description = "팀 멤버가 미완료(completed=false) 할 일만 모아서 조회합니다."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공",
+                    content = @Content(mediaType = "application/json",
+                            array = @ArraySchema(schema = @Schema(implementation = TeamFloorResponse.class)))),
+            @ApiResponse(responseCode = "401", description = "인증 실패"),
+            @ApiResponse(responseCode = "403", description = "팀 멤버가 아님"),
+            @ApiResponse(responseCode = "404", description = "팀을 찾을 수 없음")
+    })
+    public ResponseEntity<List<TeamFloorResponse>> listIncomplete(@PathVariable Long teamId) {
+        User me = meOrThrow();
+        return ResponseEntity.ok(teamFloorService.listIncompleteTeamFloors(me.getUserId(), teamId));
+    }
+
+    // 4) 할 일 상세 조회 (member)
     @GetMapping("/{teamId}/floors/{teamFloorId}")
     @Operation(summary = "팀 할 일 상세 조회", description = "팀 멤버가 특정 할 일을 상세 조회합니다.")
     @ApiResponses({
@@ -103,7 +122,7 @@ public class TeamFloorController {
         return ResponseEntity.ok(teamFloorService.getTeamFloorDetail(me.getUserId(), teamId, teamFloorId));
     }
 
-    // 4) 할 일 수정 (owner)
+    // 5) 할 일 수정 (owner)
     @PutMapping("/floors/{teamFloorId}")
     @Operation(
             summary = "팀 할 일 수정",
@@ -128,7 +147,7 @@ public class TeamFloorController {
         return ResponseEntity.ok().build();
     }
 
-    // 5) 할 일 삭제 (owner)
+    // 6) 할 일 삭제 (owner)
     @DeleteMapping("/floors/{teamFloorId}")
     @Operation(
             summary = "팀 할 일 삭제",
@@ -146,7 +165,7 @@ public class TeamFloorController {
         return ResponseEntity.noContent().build();
     }
 
-    // 6) 배정자 변경(재배정) (owner) - 빈 배열 허용(미정으로 만들기 가능)
+    // 7) 배정자 변경(재배정) (owner) - 빈 배열 허용(미정으로 만들기 가능)
     @PatchMapping("/floors/{teamFloorId}/assignees")
     @Operation(
             summary = "팀 할 일 배정자 변경(재배정)",
@@ -170,7 +189,7 @@ public class TeamFloorController {
         return ResponseEntity.ok().build();
     }
 
-    // 7) 완료 토글 ON (assignee OR admin/owner)
+    // 8) 완료 토글 ON (assignee OR admin/owner)
     @PostMapping("/floors/{teamFloorId}/complete")
     @Operation(
             summary = "팀 할 일 완료(토글 ON)",
@@ -194,7 +213,7 @@ public class TeamFloorController {
         return ResponseEntity.ok(new TeamFloorCompleteResponse(r.isAlreadyCompleted(), r.isLevelUp()));
     }
 
-    // 8) 완료 취소 토글 OFF (assignee OR admin/owner)
+    // 9) 완료 취소 토글 OFF (assignee OR admin/owner)
     @PostMapping("/floors/{teamFloorId}/cancel")
     @Operation(
             summary = "팀 할 일 완료 취소(토글 OFF)",

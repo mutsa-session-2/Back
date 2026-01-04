@@ -60,7 +60,17 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    @Operation(summary = "로그인", description = "이메일/비밀번호로 로그인하고 JWT 발급")
+    @Operation(
+        summary = "로그인",
+        description = """
+            이메일/비밀번호로 로그인하고 JWT를 발급합니다.
+
+            - 코인 정책
+              - (추가) 출석(접속일) 기준 하루 1회 **10코인** 지급
+              - (첫 로그인) 회원가입 직후 첫 로그인 시 **50코인** 지급
+                - 첫 로그인 날에도 출석 보상 10코인은 함께 지급됩니다.
+            """
+    )
     @ApiResponse(responseCode = "200", description = "JWT 액세스 토큰 반환",
         content = @Content(schema = @Schema(implementation = AuthResponse.class)))
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {

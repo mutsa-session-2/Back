@@ -167,12 +167,12 @@ public class FloorController {
 
     @PostMapping("/{floorId}/complete")
     @Operation(
-        summary = "Floor 완료 체크 (10코인 지급)",
+                summary = "Floor 완료 체크 (10코인 지급)",
         description = """
-            지정한 Floor를 완료 처리하고, 해당 사용자에게 **10코인**을 지급합니다.
+                        지정한 Floor를 완료 처리하고, 해당 사용자에게 **10코인**을 지급합니다.
 
-            - 코인 정책
-              - 퀘스트(층, Floor) 하나를 체크(완료)할 때마다 **10코인**
+                        - 코인 정책
+                            - 퀘스트(층, Floor) 하나를 체크(완료)할 때마다 **10코인**
             - 중복 보호
               - 이미 완료된 Floor를 다시 완료하려 하면 400 에러가 발생합니다.
             - 권한

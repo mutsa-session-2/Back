@@ -1,5 +1,7 @@
 package floorida.example.floorida.service;
 
+import java.time.LocalDate;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -55,7 +57,11 @@ public class UserService {
         }
 
         // 처음 로그인한 사용자라면 UserProfile 생성 + 50코인 지급
-        userProfileService.ensureSignupBonusOnFirstLogin(user);
+        boolean createdProfile = userProfileService.ensureSignupBonusOnFirstLogin(user);
+
+        // 접속일 기준 하루 1회 일일 접속 보상 (+10코인)
+        // 첫 로그인(가입 보너스 50코인) 날에도 함께 지급되도록 분리 정책으로 처리합니다.
+        userProfileService.grantDailyLoginRewardOnLogin(user.getUserId(), LocalDate.now());
 
         return user;
     }

@@ -103,19 +103,62 @@ public class TeamFloorController {
         return ResponseEntity.ok(teamFloorService.getTeamFloorDetail(me.getUserId(), teamId, teamFloorId));
     }
 
-    // 4) 배정자 변경(재배정) (admin/owner) - 빈 배열 허용(미정으로 만들기 가능)
+    // 4) 할 일 수정 (owner)
+    @PutMapping("/floors/{teamFloorId}")
+    @Operation(
+            summary = "팀 할 일 수정",
+            description =
+                    "특정 할 일의 제목/마감일을 수정합니다.\n" +
+                            "- OWNER(방장)만 가능\n" +
+                            "- dueDate는 팀 프로젝트 기간(startDate~endDate) 안에서만 허용"
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "수정 성공"),
+            @ApiResponse(responseCode = "400", description = "요청값 오류(dueDate 범위 위반 등)"),
+            @ApiResponse(responseCode = "401", description = "인증 실패"),
+            @ApiResponse(responseCode = "403", description = "권한 없음(OWNER 아님)"),
+            @ApiResponse(responseCode = "404", description = "할 일을 찾을 수 없음")
+    })
+    public ResponseEntity<Void> updateTeamFloor(
+            @PathVariable Long teamFloorId,
+            @Valid @RequestBody TeamFloorUpdateRequest request
+    ) {
+        User me = meOrThrow();
+        teamFloorService.updateTeamFloor(me.getUserId(), teamFloorId, request);
+        return ResponseEntity.ok().build();
+    }
+
+    // 5) 할 일 삭제 (owner)
+    @DeleteMapping("/floors/{teamFloorId}")
+    @Operation(
+            summary = "팀 할 일 삭제",
+            description = "특정 할 일을 삭제합니다. OWNER(방장)만 가능."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "삭제 성공"),
+            @ApiResponse(responseCode = "401", description = "인증 실패"),
+            @ApiResponse(responseCode = "403", description = "권한 없음(OWNER 아님)"),
+            @ApiResponse(responseCode = "404", description = "할 일을 찾을 수 없음")
+    })
+    public ResponseEntity<Void> deleteTeamFloor(@PathVariable Long teamFloorId) {
+        User me = meOrThrow();
+        teamFloorService.deleteTeamFloor(me.getUserId(), teamFloorId);
+        return ResponseEntity.noContent().build();
+    }
+
+    // 6) 배정자 변경(재배정) (owner) - 빈 배열 허용(미정으로 만들기 가능)
     @PatchMapping("/floors/{teamFloorId}/assignees")
     @Operation(
             summary = "팀 할 일 배정자 변경(재배정)",
             description =
                     "특정 할 일의 배정자 목록을 교체합니다.\n" +
                             "- 빈 배열/NULL도 허용(미정으로 변경)\n" +
-                            "- OWNER/ADMIN만 가능"
+                            "- OWNER(방장)만 가능"
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "변경 성공"),
             @ApiResponse(responseCode = "401", description = "인증 실패"),
-            @ApiResponse(responseCode = "403", description = "권한 없음(OWNER/ADMIN 아님)"),
+            @ApiResponse(responseCode = "403", description = "권한 없음(OWNER 아님)"),
             @ApiResponse(responseCode = "404", description = "할 일을 찾을 수 없음")
     })
     public ResponseEntity<Void> updateAssignees(
@@ -127,7 +170,7 @@ public class TeamFloorController {
         return ResponseEntity.ok().build();
     }
 
-    // 5) 완료 토글 ON (assignee OR admin/owner)
+    // 7) 완료 토글 ON (assignee OR admin/owner)
     @PostMapping("/floors/{teamFloorId}/complete")
     @Operation(
             summary = "팀 할 일 완료(토글 ON)",
@@ -151,7 +194,7 @@ public class TeamFloorController {
         return ResponseEntity.ok(new TeamFloorCompleteResponse(r.isAlreadyCompleted(), r.isLevelUp()));
     }
 
-    // 6) 완료 취소 토글 OFF (assignee OR admin/owner)
+    // 8) 완료 취소 토글 OFF (assignee OR admin/owner)
     @PostMapping("/floors/{teamFloorId}/cancel")
     @Operation(
             summary = "팀 할 일 완료 취소(토글 OFF)",

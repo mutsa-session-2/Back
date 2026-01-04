@@ -13,6 +13,9 @@ public interface TeamFloorRepository extends JpaRepository<TeamFloor, Long> {
     // 팀의 할 일 목록
     List<TeamFloor> findByTeam_IdOrderByDueDateAscCreatedAtAsc(Long teamId);
 
+    // 팀의 "미완료" 할 일 목록
+    List<TeamFloor> findByTeam_IdAndCompletedFalseOrderByDueDateAscCreatedAtAsc(Long teamId);
+
     // 특정 팀에 속한 할 일인지까지 같이 확인할 때 유용
     Optional<TeamFloor> findByIdAndTeam_Id(Long floorId, Long teamId);
 

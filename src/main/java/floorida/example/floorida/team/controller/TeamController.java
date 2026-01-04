@@ -424,43 +424,54 @@ public class TeamController {
         ));
     }
 
-    // 6) 팀 삭제 (owner만)
+    // 6) 팀 삭제 (owner만 + 비밀번호 재확인)
     @DeleteMapping("/{teamId}")
     @Operation(
             summary = "팀 삭제",
             description =
                     "팀을 삭제합니다.\n\n" +
                             "접근 조건:\n" +
-                            "- OWNER만 가능(권한 없으면 403)\n\n" +
+                            "- OWNER만 가능(권한 없으면 403)\n" +
+                            "- 비밀번호 재입력 필요(불일치 시 400)\n\n" +
                             "권한:\n" +
                             "- JWT 인증 필요"
     )
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "삭제 성공(응답 본문 없음)"),
             @ApiResponse(
+                    responseCode = "400",
+                    description = "비밀번호 불일치",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(value = "{ \"message\": \"invalid password\" }"))
+            ),
+            @ApiResponse(
                     responseCode = "401",
                     description = "인증 실패",
                     content = @Content(mediaType = "application/json",
-                            examples = @ExampleObject(value = "{ \"error\": \"Unauthorized\", \"message\": \"unauthorized\" }"))
+                            examples = @ExampleObject(value = "{ \"message\": \"unauthorized\" }"))
             ),
             @ApiResponse(
                     responseCode = "403",
                     description = "권한 없음",
                     content = @Content(mediaType = "application/json",
-                            examples = @ExampleObject(value = "{ \"error\": \"Forbidden\", \"message\": \"no permission\" }"))
+                            examples = @ExampleObject(value = "{ \"message\": \"no permission\" }"))
             ),
             @ApiResponse(
                     responseCode = "404",
                     description = "팀을 찾을 수 없음",
                     content = @Content(mediaType = "application/json",
-                            examples = @ExampleObject(value = "{ \"error\": \"Not Found\", \"message\": \"team not found\" }"))
+                            examples = @ExampleObject(value = "{ \"message\": \"team not found\" }"))
             )
     })
-    public ResponseEntity<Void> deleteTeam(@PathVariable Long teamId) {
+    public ResponseEntity<Void> deleteTeam(
+            @PathVariable Long teamId,
+            @Valid @RequestBody TeamDeleteRequest request
+    ) {
         User me = meOrThrow();
-        teamService.deleteTeam(teamId, me.getUserId());
+        teamService.deleteTeamWithPassword(teamId, me.getUserId(), request.getPassword());
         return ResponseEntity.noContent().build();
     }
+
 
     // 7) 팀원 퇴출 (owner만)
     @DeleteMapping("/{teamId}/members/{targetUserId}")
@@ -557,4 +568,6 @@ public class TeamController {
         teamService.leaveTeam(teamId, me.getUserId());
         return ResponseEntity.noContent().build();
     }
+
+
 }

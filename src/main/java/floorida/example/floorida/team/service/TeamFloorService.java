@@ -132,7 +132,51 @@ public class TeamFloorService {
     }
 
     /* =========================================================
-       4) 배정자 변경 (admin/owner)
+       4) 할 일 수정 (owner)
+       - 제목/마감일 수정
+       - dueDate는 팀 프로젝트 기간 내
+       ========================================================= */
+    public void updateTeamFloor(Long requesterUserId, Long teamFloorId, TeamFloorUpdateRequest req) {
+        TeamFloor floor = teamFloorRepository.findById(teamFloorId)
+                .orElseThrow(() -> new EntityNotFoundException("TeamFloor not found"));
+
+        Long teamId = floor.getTeam().getId();
+        teamService.validateOwner(teamId, requesterUserId);
+
+        Team team = teamService.getTeamOrThrow(teamId);
+
+        LocalDate dueDate = req.getDueDate();
+        if (dueDate != null) {
+            if (dueDate.isBefore(team.getStartDate()) || dueDate.isAfter(team.getEndDate())) {
+                throw new IllegalArgumentException("dueDate out of team period");
+            }
+        }
+
+        // TeamFloor 엔티티에 setter가 없다면, setter 추가하거나 update 메서드로 바꾸면 됨.
+        floor.setTitle(req.getTitle());
+        floor.setDueDate(dueDate);
+
+        // dirty checking으로 자동 반영
+    }
+
+    /* =========================================================
+       5) 할 일 삭제 (owner)
+       - 배정 매핑 먼저 삭제 후 할 일 삭제
+       ========================================================= */
+    public void deleteTeamFloor(Long requesterUserId, Long teamFloorId) {
+        TeamFloor floor = teamFloorRepository.findById(teamFloorId)
+                .orElseThrow(() -> new EntityNotFoundException("TeamFloor not found"));
+
+        Long teamId = floor.getTeam().getId();
+        teamService.validateOwner(teamId, requesterUserId);
+
+        // FK 고려: 상태(매핑) 먼저 삭제
+        teamFloorStatusRepository.deleteByIdTeamFloorId(teamFloorId);
+        teamFloorRepository.delete(floor);
+    }
+
+    /* =========================================================
+       6) 배정자 변경 (owner)
        - 빈 배열 허용: 미정으로 만들기 가능
        - 기존 배정 매핑 삭제 후 새로 insert
        ========================================================= */
@@ -141,7 +185,7 @@ public class TeamFloorService {
                 .orElseThrow(() -> new EntityNotFoundException("TeamFloor not found"));
 
         Long teamId = floor.getTeam().getId();
-        teamService.validateAdmin(teamId, requesterUserId);
+        teamService.validateOwner(teamId, requesterUserId);
 
         // 기존 매핑 삭제
         teamFloorStatusRepository.deleteByIdTeamFloorId(teamFloorId);
@@ -170,7 +214,7 @@ public class TeamFloorService {
     }
 
     /* =========================================================
-       5) 완료 처리 (배정자 OR 팀장)
+       7) 완료 처리 (배정자 OR 팀장)
        ========================================================= */
     public CompleteResult complete(Long requesterUserId, Long teamFloorId) {
         TeamFloor floor = teamFloorRepository.findById(teamFloorId)
@@ -205,7 +249,7 @@ public class TeamFloorService {
     }
 
     /* =========================================================
-       6) 완료 취소 (배정자 OR 팀장)
+       8) 완료 취소 (배정자 OR 팀장)
        ========================================================= */
     public CancelResult cancel(Long requesterUserId, Long teamFloorId) {
         TeamFloor floor = teamFloorRepository.findById(teamFloorId)
@@ -247,3 +291,4 @@ public class TeamFloorService {
         private boolean levelDown;
     }
 }
+

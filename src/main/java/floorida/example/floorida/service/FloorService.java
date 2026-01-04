@@ -62,7 +62,7 @@ public class FloorService {
     }
 
     /**
-     * Floor 완료 처리 (퀘스트 체크) - 10코인 지급
+        * Floor 완료 처리 (퀘스트 체크) - 10코인 지급
      */
     @Transactional
     public void completeFloor(Long floorId) {

@@ -32,7 +32,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @RequiredArgsConstructor
 @Validated
 @Tag(name = "팀", description = "팀 생성/가입/조회/멤버 관리 API")
-@SecurityRequirement(name = "Bearer Authentication")
+@SecurityRequirement(name = "bearerAuth")
 public class TeamController {
 
     private final TeamService teamService;

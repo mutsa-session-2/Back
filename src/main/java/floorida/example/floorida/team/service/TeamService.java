@@ -4,6 +4,8 @@ import floorida.example.floorida.entity.User;
 import floorida.example.floorida.repository.UserRepository;
 import floorida.example.floorida.team.entity.Team;
 import floorida.example.floorida.team.entity.TeamMember;
+import floorida.example.floorida.team.repository.TeamFloorRepository;
+import floorida.example.floorida.team.repository.TeamFloorStatusRepository;
 import floorida.example.floorida.team.repository.TeamMemberRepository;
 import floorida.example.floorida.team.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,16 +23,16 @@ public class TeamService {
     private final TeamRepository teamRepository;
     private final TeamMemberRepository teamMemberRepository;
     private final UserRepository userRepository;
+    private final TeamFloorRepository teamFloorRepository;
+    private final TeamFloorStatusRepository teamFloorStatusRepository;
 
     //*기능*//
     //캘린더
     //진행도
 
-
     public Long createTeam(Long userId, String name, LocalDate startDate, LocalDate endDate) {
         return createTeam(userId, name, null, startDate, endDate);
     }
-
 
     // 내 팀 조회
     @Transactional(readOnly = true)
@@ -61,6 +63,15 @@ public class TeamService {
         }
     }
 
+    // 권한 체크 - owner인지 (팀 삭제/퇴출용)
+    @Transactional(readOnly = true)
+    public void validateOwner(Long teamId, Long userId) {
+        TeamMember tm = getMember(teamId, userId);
+        if (!"owner".equals(tm.getRole())) {
+            throw new IllegalStateException("no permission");
+        }
+    }
+
     // 팀 생성 (프로젝트 기간 포함)
     public Long createTeam(Long userId,
                            String name,
@@ -77,7 +88,6 @@ public class TeamService {
 
         String joinCode = generateJoinCode();
 
-        // 생성자 파라미터 순서: (name, description, startDate, endDate, joinCode)
         Team team = new Team(name, description, startDate, endDate, joinCode);
         teamRepository.save(team);
 
@@ -86,7 +96,6 @@ public class TeamService {
 
         return team.getId();
     }
-
 
     // 초대코드 생성
     private String generateJoinCode() {
@@ -115,24 +124,18 @@ public class TeamService {
         teamMemberRepository.save(member);
     }
 
-    // 권한 체크 - owner인지 (팀 삭제/퇴출용)
-    @Transactional(readOnly = true)
-    public void validateOwner(Long teamId, Long userId) {
-        TeamMember tm = getMember(teamId, userId);
-        if (!"owner".equals(tm.getRole())) {
-            throw new IllegalStateException("no permission");
-        }
-
-
-    }
     // 팀 삭제 (팀장만)
     public void deleteTeam(Long teamId, Long requesterUserId) {
         getTeamOrThrow(teamId);
         validateOwner(teamId, requesterUserId);
 
-        // FK 고려: 멤버 먼저 삭제 후 팀 삭제
+        // 팀의 모든 할 일 배정 제거
+        teamFloorStatusRepository.deleteByTeamFloor_Team_Id(teamId);
 
-        // TODO: teamScheduleRepository.deleteByTeam_Id(teamId);
+        // 팀의 모든 할 일 제거
+        teamFloorRepository.deleteByTeam_Id(teamId);
+
+        // FK 고려: 멤버 먼저 삭제 후 팀 삭제
         teamMemberRepository.deleteByTeam_Id(teamId);
         teamRepository.deleteById(teamId);
     }
@@ -152,6 +155,10 @@ public class TeamService {
             throw new IllegalArgumentException("cannot kick owner");
         }
 
+        // 퇴출 시 배정된 할 일 제거 → 미정 가능
+        teamFloorStatusRepository
+                .deleteByIdUserIdAndTeamFloor_Team_Id(targetUserId, teamId);
+
         teamMemberRepository.delete(target);
     }
 
@@ -165,10 +172,10 @@ public class TeamService {
             throw new IllegalArgumentException("owner cannot leave; delete team instead");
         }
 
+        // 탈퇴 시 배정된 할 일 맵핑 제거 - 배정 삭제 (할 일은 배장자 미정상태로 남음)
+        teamFloorStatusRepository
+                .deleteByIdUserIdAndTeamFloor_Team_Id(userId, teamId);
+
         teamMemberRepository.delete(me);
     }
-
-
-
-
 }

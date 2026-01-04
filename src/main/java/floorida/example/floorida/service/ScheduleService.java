@@ -1,6 +1,7 @@
 package floorida.example.floorida.service;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.concurrent.ThreadLocalRandom;
@@ -43,26 +44,29 @@ public class ScheduleService {
         User user = currentUserService.getCurrentUser()
                 .orElseThrow(() -> new IllegalStateException("Unauthenticated"));
         validateDates(req.getStartDate(), req.getEndDate());
+        if (req.getTeamId() != null) {
+            throw new IllegalArgumentException("Team schedules are not supported yet");
+        }
 
         Schedule schedule = new Schedule();
         schedule.setCreatorUserId(user.getUserId());
-        schedule.setTeamId(req.getTeamId());
+        schedule.setTeamId(null);
         schedule.setTitle(req.getTitle());
-        // 원래 목표/요약 설정 (없으면 title을 목표로 사용)
-        schedule.setOriginalGoal(req.getOriginalGoal() != null && !req.getOriginalGoal().isBlank() ? req.getOriginalGoal() : req.getTitle());
-        schedule.setGoalSummary(req.getGoalSummary());
+        // 수동 생성은 프로젝트 이름/기간만 입력받고, 세부 계획은 기본값으로 자동 생성
+        schedule.setOriginalGoal(req.getTitle());
+        schedule.setGoalSummary(null);
         schedule.setStartDate(req.getStartDate());
         schedule.setEndDate(req.getEndDate());
-    schedule.setColor(getOrGenerateColor(req.getColor()));
+        schedule.setColor(getOrGenerateColor(req.getColor()));
 
-        if (req.getFloors() != null && !req.getFloors().isEmpty()) {
-            for (var f : req.getFloors()) {
-                FloorPlan floor = new FloorPlan();
-                floor.setCreatorUserId(user.getUserId());
-                floor.setTitle(f.getTitle());
-                floor.setScheduledDate(f.getScheduledDate());
-                schedule.addFloor(floor);
-            }
+        long totalDays = ChronoUnit.DAYS.between(req.getStartDate(), req.getEndDate()) + 1;
+        for (int i = 0; i < totalDays; i++) {
+            LocalDate date = req.getStartDate().plusDays(i);
+            FloorPlan floor = new FloorPlan();
+            floor.setCreatorUserId(user.getUserId());
+            floor.setTitle((i + 1) + "일 차");
+            floor.setScheduledDate(date);
+            schedule.addFloor(floor);
         }
         Schedule saved = scheduleRepository.save(schedule);
         return toResponse(saved);
@@ -73,19 +77,24 @@ public class ScheduleService {
         User user = currentUserService.getCurrentUser()
                 .orElseThrow(() -> new IllegalStateException("Unauthenticated"));
         validateDates(req.getStartDate(), req.getEndDate());
+        if (req.getTeamId() != null) {
+            throw new IllegalArgumentException("Team schedules are not supported yet");
+        }
 
         // Call AI to get suggested floors
         List<AiPlanningService.AiFloor> aiFloors = aiPlanningService.plan(req.getGoal(), req.getStartDate(), req.getEndDate());
+        // Normalize: ensure one floor per date and never store generic "단계 n" titles
+        aiFloors = aiPlanningService.sanitizeAiFloors(req.getGoal(), req.getStartDate(), req.getEndDate(), aiFloors);
 
         Schedule schedule = new Schedule();
         schedule.setCreatorUserId(user.getUserId());
-        schedule.setTeamId(req.getTeamId());
+        schedule.setTeamId(null);
         // 표시용 제목 (title 제공 시 사용, 없으면 goal 그대로)
         schedule.setTitle(req.getTitle() != null && !req.getTitle().isBlank() ? req.getTitle() : req.getGoal());
         schedule.setOriginalGoal(req.getGoal());
         schedule.setStartDate(req.getStartDate());
         schedule.setEndDate(req.getEndDate());
-    schedule.setColor(getOrGenerateColor(req.getColor()));
+        schedule.setColor(getOrGenerateColor(req.getColor()));
 
         for (var af : aiFloors) {
             FloorPlan floor = new FloorPlan();

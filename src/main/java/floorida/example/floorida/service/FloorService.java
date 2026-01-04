@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import floorida.example.floorida.dto.FloorResponse;
+import floorida.example.floorida.dto.FloorUpdateRequest;
 import floorida.example.floorida.entity.FloorPlan;
 import floorida.example.floorida.entity.FloorStatus;
 import floorida.example.floorida.entity.User;
@@ -61,7 +62,7 @@ public class FloorService {
     }
 
     /**
-     * Floor 완료 처리 (퀘스트 체크) - 10코인 지급
+        * Floor 완료 처리 (퀘스트 체크) - 10코인 지급
      */
     @Transactional
     public void completeFloor(Long floorId) {
@@ -98,6 +99,51 @@ public class FloorService {
         // 출석 뱃지 지급 (가정: 하루 1개 이상 완료 = 출석)
         LocalDate attendanceDate = floor.getScheduledDate() != null ? floor.getScheduledDate() : LocalDate.now();
         badgeService.onAttendance(user, attendanceDate);
+    }
+
+    /**
+     * Floor 제목 수정
+     */
+    @Transactional
+    public FloorResponse updateFloor(Long floorId, FloorUpdateRequest req) {
+        User user = currentUserService.getCurrentUser()
+                .orElseThrow(() -> new IllegalStateException("Unauthenticated"));
+
+        FloorPlan floor = floorPlanRepository.findById(floorId)
+                .orElseThrow(() -> new IllegalArgumentException("Floor not found"));
+
+        if (!floor.getCreatorUserId().equals(user.getUserId())) {
+            throw new IllegalArgumentException("Not authorized to update this floor");
+        }
+
+        if (req.getTitle() != null && !req.getTitle().isBlank()) {
+            floor.setTitle(req.getTitle());
+        }
+
+        if (req.getScheduledDate() != null) {
+            var schedule = floor.getSchedule();
+            if (schedule != null && schedule.getStartDate() != null && schedule.getEndDate() != null) {
+                if (req.getScheduledDate().isBefore(schedule.getStartDate()) || req.getScheduledDate().isAfter(schedule.getEndDate())) {
+                    throw new IllegalArgumentException("scheduledDate must be within schedule date range");
+                }
+            }
+
+            Long scheduleId = schedule != null ? schedule.getScheduleId() : null;
+            if (scheduleId != null) {
+                List<FloorPlan> sameDateFloors = floorPlanRepository
+                        .findBySchedule_ScheduleIdAndScheduledDate(scheduleId, req.getScheduledDate());
+                boolean hasOther = sameDateFloors.stream()
+                        .anyMatch(f -> f.getFloorId() != null && !f.getFloorId().equals(floorId));
+                if (hasOther) {
+                    throw new IllegalArgumentException("Another floor already exists for the given scheduledDate");
+                }
+            }
+
+            floor.setScheduledDate(req.getScheduledDate());
+        }
+
+        FloorPlan saved = floorPlanRepository.save(floor);
+        return toResponse(saved);
     }
 
     private FloorResponse toResponse(FloorPlan floor) {

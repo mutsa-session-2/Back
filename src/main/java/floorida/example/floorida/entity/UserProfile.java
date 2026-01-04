@@ -1,5 +1,9 @@
 package floorida.example.floorida.entity;
 
+import java.time.LocalDate;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -17,6 +21,7 @@ import lombok.Setter;
  *
  * - points: 코인(포인트)
  * - personalLevel: 개인 층수
+ * - lastDailyLoginRewardDate: 마지막 '일일 접속 보상' 지급일
  *
  * 온보딩에서 사용할 planningTendency / dailyStudyHours 는
  * 아직 UI/비즈니스 로직이 없으므로 선택 값으로 두고, 이후 확장 시 사용합니다.
@@ -26,6 +31,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @Entity
 @Table(name = "user_profiles")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class UserProfile {
 
     @Id
@@ -35,6 +41,7 @@ public class UserProfile {
     @OneToOne(fetch = FetchType.LAZY)
     @MapsId
     @JoinColumn(name = "user_id")
+    @JsonIgnore
     private User user;
 
     @Column(name = "planning_tendency", length = 50)
@@ -48,6 +55,9 @@ public class UserProfile {
 
     @Column(name = "personal_level", nullable = false)
     private Integer personalLevel = 1;
+
+    @Column(name = "last_daily_login_reward_date")
+    private LocalDate lastDailyLoginRewardDate;
 
     public void deductPoints(int price) {
         if (this.points < price) {

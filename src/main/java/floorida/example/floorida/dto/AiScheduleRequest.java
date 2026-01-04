@@ -70,7 +70,7 @@ public class AiScheduleRequest {
     private LocalDate endDate;
 
     @Schema(
-        description = "팀 ID (팀 일정인 경우만 입력, 개인 일정은 null)",
+        description = "팀 ID (현재 미지원: 항상 null이어야 함)",
         example = "null",
         required = false
     )

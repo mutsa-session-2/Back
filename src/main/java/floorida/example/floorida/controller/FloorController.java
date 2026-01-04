@@ -8,10 +8,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import floorida.example.floorida.dto.FloorResponse;
+import floorida.example.floorida.dto.FloorUpdateRequest;
 import floorida.example.floorida.service.FloorService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -23,6 +26,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/floors")
@@ -163,12 +167,12 @@ public class FloorController {
 
     @PostMapping("/{floorId}/complete")
     @Operation(
-        summary = "Floor 완료 체크 (10코인 지급)",
+                summary = "Floor 완료 체크 (10코인 지급)",
         description = """
-            지정한 Floor를 완료 처리하고, 해당 사용자에게 **10코인**을 지급합니다.
+                        지정한 Floor를 완료 처리하고, 해당 사용자에게 **10코인**을 지급합니다.
 
-            - 코인 정책
-              - 퀘스트(층, Floor) 하나를 체크(완료)할 때마다 **10코인**
+                        - 코인 정책
+                            - 퀘스트(층, Floor) 하나를 체크(완료)할 때마다 **10코인**
             - 중복 보호
               - 이미 완료된 Floor를 다시 완료하려 하면 400 에러가 발생합니다.
             - 권한
@@ -203,5 +207,59 @@ public class FloorController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+
+    @PatchMapping("/{floorId}")
+    @Operation(
+        summary = "Floor 수정 (제목/날짜)",
+        description = """
+            지정한 Floor(세부 일정)의 제목과/또는 날짜를 수정합니다.
+
+            - 제목만 수정: `{ "title": "새 제목" }`
+            - 날짜만 이동: `{ "scheduledDate": "2025-11-20" }`
+            - 둘 다 수정: `{ "title": "새 제목", "scheduledDate": "2025-11-20" }`
+
+            **제약:**
+            - 날짜를 변경하는 경우, 해당 Floor의 일정 기간(startDate~endDate) 안에서만 이동 가능합니다
+            - 같은 일정(schedule) 안에서 같은 날짜에 Floor는 1개만 허용됩니다
+
+            **사용 사례:**
+            - 캘린더/프로젝트 수정 화면에서 일차(할 일) 내용을 원하는 텍스트로 변경
+
+            **권한:**
+            - JWT 토큰 필수
+            - 본인이 생성한 Floor만 수정 가능
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(
+            responseCode = "200",
+            description = "수정 성공",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = FloorResponse.class),
+                examples = @ExampleObject(
+                    value = """
+                        {
+                          "floorId": 1,
+                          "scheduleId": 1,
+                          "scheduleTitle": "토익 900점 달성",
+                          "scheduleColor": "#FF6B6B",
+                          "floorTitle": "RC 파트 총정리",
+                          "scheduledDate": "2025-11-13"
+                        }
+                        """
+                )
+            )
+        ),
+        @ApiResponse(responseCode = "400", description = "잘못된 요청 또는 권한 없음"),
+        @ApiResponse(responseCode = "401", description = "인증 실패")
+    })
+    public ResponseEntity<FloorResponse> updateFloor(
+        @Parameter(description = "수정할 Floor ID", required = true, example = "1")
+        @PathVariable Long floorId,
+        @Valid @RequestBody FloorUpdateRequest req
+    ) {
+        return ResponseEntity.ok(floorService.updateFloor(floorId, req));
     }
 }

@@ -13,12 +13,14 @@ import java.util.List;
 
 import floorida.example.floorida.dto.MyBadgeResponse;
 import floorida.example.floorida.dto.OnboardingRequest;
+import floorida.example.floorida.dto.UncompletedScheduleResponse;
 import floorida.example.floorida.dto.WithdrawRequest;
 import floorida.example.floorida.entity.User;
 import floorida.example.floorida.entity.UserProfile;
 import floorida.example.floorida.service.AccountService;
 import floorida.example.floorida.service.BadgeService;
 import floorida.example.floorida.service.CurrentUserService;
+import floorida.example.floorida.service.FloorStatusService;
 import floorida.example.floorida.service.UserProfileService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -40,12 +42,20 @@ public class MeController {
     private final UserProfileService userProfileService;
     private final AccountService accountService;
     private final BadgeService badgeService;
+    private final FloorStatusService floorStatusService;
 
-    public MeController(CurrentUserService currentUserService, UserProfileService userProfileService, AccountService accountService, BadgeService badgeService) {
+    public MeController(
+            CurrentUserService currentUserService,
+            UserProfileService userProfileService,
+            AccountService accountService,
+            BadgeService badgeService,
+            FloorStatusService floorStatusService
+    ) {
         this.currentUserService = currentUserService;
         this.userProfileService = userProfileService;
         this.accountService = accountService;
         this.badgeService = badgeService;
+        this.floorStatusService = floorStatusService;
     }
 
     @GetMapping
@@ -66,6 +76,7 @@ public class MeController {
             **코인을 얻는 상황**
             - 퀘스트(Floor) 하나 체크할 때마다 **10코인**
             - 처음 회원가입하고 로그인 했을 때 **50코인**
+            - (추가) 출석(접속일) 기준 하루 1회 **10코인**
 
             **권한**
             - JWT 토큰 필수
@@ -99,6 +110,32 @@ public class MeController {
     @Operation(summary = "내 뱃지 목록 조회", description = "로그인한 사용자가 획득한 뱃지 목록을 반환합니다.")
     public ResponseEntity<List<MyBadgeResponse>> getMyBadges() {
         return ResponseEntity.ok(badgeService.getMyBadges());
+    }
+
+    @GetMapping("/personal-place/missed")
+    @Operation(
+        summary = "개인 플레이스: 미달성 일정 모아보기",
+        description = """
+            등록한 계획(Schedule)마다, 오늘 이전 날짜인데 아직 완료하지 못한 세부 일정(Floor)을 모아서 반환합니다.
+
+            - 미달성 기준: `scheduledDate < today` 이고 완료 처리(FloorStatus.isCompleted=true)가 없는 Floor
+            - 반환 형태: Schedule 단위로 그룹핑
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(
+            responseCode = "200",
+            description = "조회 성공",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = UncompletedScheduleResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "인증 실패",
+            content = @Content(mediaType = "application/json")
+        )
+    })
+    public ResponseEntity<List<UncompletedScheduleResponse>> getMissedInPersonalPlace() {
+        return ResponseEntity.ok(floorStatusService.getMissedFloorsBySchedule());
     }
 
     @GetMapping("/profile")

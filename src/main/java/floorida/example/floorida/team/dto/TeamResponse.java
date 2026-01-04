@@ -15,4 +15,6 @@ public class TeamResponse {
     private LocalDate startDate;
     private LocalDate endDate;
     private Instant createdAt;
+
+    private String myRole;
 }

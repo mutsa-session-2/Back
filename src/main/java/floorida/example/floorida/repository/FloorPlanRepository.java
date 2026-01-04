@@ -4,6 +4,8 @@ import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import floorida.example.floorida.entity.FloorPlan;
@@ -22,4 +24,31 @@ public interface FloorPlanRepository extends JpaRepository<FloorPlan, Long> {
     
     // 특정 사용자의 기간별 Floor 조회
     List<FloorPlan> findAllByCreatorUserIdAndScheduledDateBetween(Long creatorUserId, LocalDate start, LocalDate end);
+
+        /**
+         * 개인 플레이스용: 오늘 이전 날짜의 미달성 Floor 목록을 조회합니다.
+         * - 미달성 기준: scheduledDate < today AND (완료 상태(FloorStatus, isCompleted=true) 없음)
+         * - schedule은 응답 DTO를 만들기 위해 fetch join 합니다.
+         */
+        @Query("""
+                select fp
+                from FloorPlan fp
+                join fetch fp.schedule s
+                where fp.creatorUserId = :userId
+                    and s.teamId is null
+                    and fp.scheduledDate is not null
+                    and fp.scheduledDate < :today
+                    and not exists (
+                            select 1
+                            from FloorStatus fs
+                            where fs.floor = fp
+                                and fs.user.userId = :userId
+                                and fs.isCompleted = true
+                    )
+                order by fp.scheduledDate asc
+                """)
+        List<FloorPlan> findUncompletedFloorsBeforeDate(
+                        @Param("userId") Long userId,
+                        @Param("today") LocalDate today
+        );
 }

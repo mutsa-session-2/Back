@@ -3,6 +3,7 @@ package floorida.example.floorida.service;
 import floorida.example.floorida.dto.DailyCompletionResponse;
 import floorida.example.floorida.dto.FloorStatusResponse;
 import floorida.example.floorida.dto.MonthlyScheduleResponse;
+import floorida.example.floorida.dto.UncompletedScheduleResponse;
 import floorida.example.floorida.entity.FloorPlan;
 import floorida.example.floorida.entity.FloorStatus;
 import floorida.example.floorida.entity.Schedule;
@@ -16,6 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -125,4 +128,62 @@ public class FloorStatusService {
                         .build())
                 .collect(Collectors.toList());
     }
+
+        /**
+         * 개인 플레이스: 등록한 계획(Schedule)마다 미달성 Floor(오늘 이전 날짜, 미완료)를 묶어서 반환합니다.
+         * - UI에서 "달성하지 못한 일정 모아보기"에 사용
+         */
+        public List<UncompletedScheduleResponse> getMissedFloorsBySchedule() {
+                User user = currentUserService.getCurrentUser()
+                                .orElseThrow(() -> new IllegalStateException("Unauthenticated"));
+
+                LocalDate today = LocalDate.now();
+                List<FloorPlan> missedFloors = floorPlanRepository.findUncompletedFloorsBeforeDate(user.getUserId(), today);
+
+                class Group {
+                        private final Schedule schedule;
+                        private final List<FloorPlan> floors = new ArrayList<>();
+
+                        private Group(Schedule schedule) {
+                                this.schedule = schedule;
+                        }
+                }
+
+                Map<Long, Group> byScheduleId = new HashMap<>();
+                for (FloorPlan fp : missedFloors) {
+                        Schedule s = fp.getSchedule();
+                        if (s == null || s.getScheduleId() == null) {
+                                continue;
+                        }
+                        byScheduleId.computeIfAbsent(s.getScheduleId(), id -> new Group(s)).floors.add(fp);
+                }
+
+                return byScheduleId.values().stream()
+                                .sorted(Comparator.comparing(g -> g.floors.stream()
+                                                .map(FloorPlan::getScheduledDate)
+                                                .filter(d -> d != null)
+                                                .min(Comparator.naturalOrder())
+                                                .orElse(today)))
+                                .map(g -> {
+                                        g.floors.sort(Comparator.comparing(FloorPlan::getScheduledDate, Comparator.nullsLast(Comparator.naturalOrder())));
+
+                                        List<UncompletedScheduleResponse.FloorDto> floors = g.floors.stream()
+                                                        .map(f -> UncompletedScheduleResponse.FloorDto.builder()
+                                                                        .floorId(f.getFloorId())
+                                                                        .title(f.getTitle())
+                                                                        .scheduledDate(f.getScheduledDate())
+                                                                        .build())
+                                                        .toList();
+
+                                        return UncompletedScheduleResponse.builder()
+                                                        .scheduleId(g.schedule.getScheduleId())
+                                                        .scheduleTitle(g.schedule.getTitle())
+                                                        .scheduleColor(g.schedule.getColor())
+                                                        .startDate(g.schedule.getStartDate())
+                                                        .endDate(g.schedule.getEndDate())
+                                                        .floors(floors)
+                                                        .build();
+                                })
+                                .toList();
+        }
 }

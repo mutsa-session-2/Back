@@ -25,8 +25,9 @@ JWT_SECRET=<base64_32bytes_secret>
 
 ## 주요 엔드포인트
 
-- POST /api/auth/register — 회원가입(email, password, username)
-- POST /api/auth/login — 로그인, { accessToken }
+- POST /api/auth/register — 회원가입(email, password, username) + 인증 메일 발송 (인증 전 로그인 불가)
+- GET /api/auth/verify?token=... — 이메일 인증 완료
+- POST /api/auth/login — 로그인(인증된 사용자만), { accessToken }
 - GET /api/me — 인증 필요(Authorization: Bearer <token>)
 
 ## 보안/비밀정보 관리

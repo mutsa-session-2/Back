@@ -16,6 +16,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import floorida.example.floorida.repository.UserProfileRepository;
+import floorida.example.floorida.repository.UserRepository;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -30,6 +31,9 @@ class AuthFlowIntegrationTest {
 
     @Autowired
     UserProfileRepository userProfileRepository;
+
+        @Autowired
+        UserRepository userRepository;
 
     @Test
     void register_then_login_createsUserProfileOnce() throws Exception {
@@ -54,9 +58,15 @@ class AuthFlowIntegrationTest {
 
         JsonNode registerJson = objectMapper.readTree(registerResponse);
         long userId = registerJson.get("userId").asLong();
-        assertThat(registerJson.get("accessToken").asText()).isNotBlank();
+                assertThat(registerJson.get("email").asText()).isEqualTo(email);
 
         long initialProfileCount = userProfileRepository.count();
+
+                // 테스트에서는 이메일 인증 링크를 실제로 따라갈 수 없으니 DB에서 인증 처리
+                userRepository.findByEmail(email).ifPresent(u -> {
+                        u.setEmailVerified(Boolean.TRUE);
+                        userRepository.save(u);
+                });
 
         // login (first login should create profile)
         String loginBody = "{" +

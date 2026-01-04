@@ -32,18 +32,39 @@ Content-Type: application/json
 }
 ```
 
-**예상 응답 (200):**
+**예상 응답 (201):**
 ```json
 {
   "userId": 1,
   "email": "test@example.com",
-  "username": "testuser"
+  "message": "Verification email sent"
+}
+```
+
+**다음 단계:** 메일함에서 인증 링크를 클릭하거나, 링크의 `token`으로 `GET /api/auth/verify`를 호출하세요.
+
+---
+
+### 2️⃣ 이메일 인증 (GET /api/auth/verify?token=...)
+
+**URL:** `{{BASE_URL}}/api/auth/verify?token={{TOKEN}}`
+
+**예상 응답 (200):**
+```
+Email verified
+```
+
+**예상 응답 (400) - 토큰 오류/만료:**
+```json
+{
+  "error": "INVALID_TOKEN",
+  "message": "Invalid token"
 }
 ```
 
 ---
 
-### 2️⃣ 로그인 (POST /api/auth/login)
+### 3️⃣ 로그인 (POST /api/auth/login)
 
 **URL:** `{{BASE_URL}}/api/auth/login`
 
@@ -55,7 +76,7 @@ Content-Type: application/json
 **Body (JSON):**
 ```json
 {
-  "username": "testuser",
+  "email": "test@example.com",
   "password": "Test1234!"
 }
 ```
@@ -63,13 +84,21 @@ Content-Type: application/json
 **예상 응답 (200):**
 ```json
 {
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "userId": 1,
-  "username": "testuser"
+  "email": "test@example.com"
 }
 ```
 
-**⚠️ 중요:** 응답의 `token` 값을 복사해서 환경 변수 `JWT_TOKEN`에 저장하세요!
+**예상 응답 (403) - 이메일 미인증:**
+```json
+{
+  "error": "EMAIL_NOT_VERIFIED",
+  "message": "Email not verified"
+}
+```
+
+**⚠️ 중요:** 응답의 `accessToken` 값을 복사해서 환경 변수 `JWT_TOKEN`에 저장하세요!
 
 ---
 

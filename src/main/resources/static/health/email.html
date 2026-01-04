@@ -35,6 +35,15 @@
   </div>
   <pre id="sendResult"></pre>
 
+  <h2>이메일 인증 링크 발급</h2>
+  <div class="row">
+    <div>가입된 이메일로 토큰을 발급하고(메일 발송 없음) 인증 링크를 반환합니다.</div>
+  </div>
+  <div class="row">
+    <button id="issue">인증 링크 생성</button>
+  </div>
+  <pre id="issueResult"></pre>
+
   <script>
     async function run() {
       const statusEl = document.getElementById('status');
@@ -75,7 +84,34 @@
       }
     }
 
+    async function issueVerification() {
+      const to = document.getElementById('to').value;
+      const token = document.getElementById('token').value;
+      const out = document.getElementById('issueResult');
+      out.textContent = 'issuing...';
+      try {
+        const res = await fetch('/api/health/email/issue-verification', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Health-Token': token,
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify({ to }),
+        });
+        const text = await res.text();
+        try {
+          out.textContent = JSON.stringify(JSON.parse(text), null, 2);
+        } catch (_) {
+          out.textContent = res.status + ' ' + text;
+        }
+      } catch (e) {
+        out.textContent = 'ERROR ' + String(e);
+      }
+    }
+
     document.getElementById('send').addEventListener('click', sendTest);
+    document.getElementById('issue').addEventListener('click', issueVerification);
     run();
   </script>
 </body>

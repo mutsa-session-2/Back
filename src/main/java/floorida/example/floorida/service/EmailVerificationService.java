@@ -40,21 +40,8 @@ public class EmailVerificationService {
             throw new IllegalArgumentException("User is required");
         }
 
-        String token = generateToken();
-        String tokenHash = sha256Hex(token);
-        Instant expiresAt = Instant.now().plus(TOKEN_EXP_HOURS, ChronoUnit.HOURS);
-
-        user.setEmailVerificationTokenHash(tokenHash);
-        user.setEmailVerificationTokenExpiresAt(expiresAt);
-        user.setEmailVerificationSentAt(Instant.now());
-
-        userRepository.save(user);
-
-        String normalizedBaseUrl = baseUrl;
-        if (normalizedBaseUrl != null && normalizedBaseUrl.endsWith("/")) {
-            normalizedBaseUrl = normalizedBaseUrl.substring(0, normalizedBaseUrl.length() - 1);
-        }
-        String link = normalizedBaseUrl + "/api/auth/verify?token=" + token;
+        IssuedVerification issued = issueVerificationToken(user);
+        String link = buildVerificationLink(issued.token());
         String subject = "[Floorida] 이메일 인증을 완료해주세요";
         String body = "아래 링크를 눌러 이메일 인증을 완료해주세요.\n\n" + link + "\n\n" +
                 "이 링크는 " + TOKEN_EXP_HOURS + "시간 동안 유효합니다.";
@@ -66,6 +53,35 @@ public class EmailVerificationService {
         }
 
         emailSender.send(user.getEmail(), subject, body);
+    }
+
+    @Transactional
+    public IssuedVerification issueVerificationToken(User user) {
+        if (user == null || user.getUserId() == null) {
+            throw new IllegalArgumentException("User is required");
+        }
+
+        String token = generateToken();
+        String tokenHash = sha256Hex(token);
+        Instant expiresAt = Instant.now().plus(TOKEN_EXP_HOURS, ChronoUnit.HOURS);
+
+        user.setEmailVerificationTokenHash(tokenHash);
+        user.setEmailVerificationTokenExpiresAt(expiresAt);
+        user.setEmailVerificationSentAt(Instant.now());
+        userRepository.save(user);
+
+        return new IssuedVerification(token, expiresAt);
+    }
+
+    public String buildVerificationLink(String token) {
+        if (token == null || token.isBlank()) {
+            throw new IllegalArgumentException("Token is required");
+        }
+        String normalizedBaseUrl = baseUrl;
+        if (normalizedBaseUrl != null && normalizedBaseUrl.endsWith("/")) {
+            normalizedBaseUrl = normalizedBaseUrl.substring(0, normalizedBaseUrl.length() - 1);
+        }
+        return normalizedBaseUrl + "/api/auth/verify?token=" + token;
     }
 
     @Transactional
@@ -109,5 +125,8 @@ public class EmailVerificationService {
         } catch (Exception e) {
             throw new IllegalStateException("Cannot hash token", e);
         }
+    }
+
+    public record IssuedVerification(String token, Instant expiresAt) {
     }
 }

@@ -10,7 +10,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import floorida.example.floorida.dto.SendTestEmailRequest;
+import floorida.example.floorida.entity.User;
+import floorida.example.floorida.repository.UserRepository;
 import floorida.example.floorida.service.EmailSender;
+import floorida.example.floorida.service.EmailVerificationService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 
@@ -20,10 +23,44 @@ public class EmailTestController {
 
     private final Environment env;
     private final EmailSender emailSender;
+    private final UserRepository userRepository;
+    private final EmailVerificationService emailVerificationService;
 
-    public EmailTestController(Environment env, EmailSender emailSender) {
+    public EmailTestController(
+            Environment env,
+            EmailSender emailSender,
+            UserRepository userRepository,
+            EmailVerificationService emailVerificationService
+    ) {
         this.env = env;
         this.emailSender = emailSender;
+        this.userRepository = userRepository;
+        this.emailVerificationService = emailVerificationService;
+    }
+
+    @PostMapping("/issue-verification")
+    @Operation(summary = "이메일 인증 링크 발급(메일 발송 없음)", description = "가입된 유저 이메일로 인증 토큰을 발급하고(저장) 인증 링크를 반환합니다. X-Health-Token 헤더가 필요합니다.")
+    public ResponseEntity<?> issueVerification(
+            @RequestHeader(value = "X-Health-Token", required = false) String token,
+            @Valid @RequestBody SendTestEmailRequest req) {
+
+        String expected = env.getProperty("app.health.token", "");
+        if (expected == null || expected.isBlank()) {
+            return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
+                    .body("Health token not configured (set APP_HEALTH_TOKEN)");
+        }
+        if (token == null || token.isBlank() || !expected.equals(token)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid X-Health-Token");
+        }
+
+        User user = userRepository.findByEmail(req.getTo()).orElse(null);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found for email");
+        }
+
+        EmailVerificationService.IssuedVerification issued = emailVerificationService.issueVerificationToken(user);
+        String link = emailVerificationService.buildVerificationLink(issued.token());
+        return ResponseEntity.ok(new IssueVerificationResponse(issued.token(), link, issued.expiresAt().toString()));
     }
 
     @PostMapping("/send-test")
@@ -51,5 +88,8 @@ public class EmailTestController {
 
         emailSender.send(req.getTo(), subject, body);
         return ResponseEntity.ok("sent");
+    }
+
+    private record IssueVerificationResponse(String token, String link, String expiresAt) {
     }
 }

@@ -9,6 +9,7 @@ import floorida.example.floorida.team.repository.TeamFloorStatusRepository;
 import floorida.example.floorida.team.repository.TeamMemberRepository;
 import floorida.example.floorida.team.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,15 +21,17 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Transactional
 public class TeamService {
+
     private final TeamRepository teamRepository;
     private final TeamMemberRepository teamMemberRepository;
     private final UserRepository userRepository;
     private final TeamFloorRepository teamFloorRepository;
     private final TeamFloorStatusRepository teamFloorStatusRepository;
+    private final PasswordEncoder passwordEncoder;
 
     //*기능*//
-    //캘린더
-    //진행도
+    // 캘린더
+    // 진행도
 
     public Long createTeam(Long userId, String name, LocalDate startDate, LocalDate endDate) {
         return createTeam(userId, name, null, startDate, endDate);
@@ -124,10 +127,19 @@ public class TeamService {
         teamMemberRepository.save(member);
     }
 
-    // 팀 삭제 (팀장만)
-    public void deleteTeam(Long teamId, Long requesterUserId) {
+    // 팀 삭제 (팀장만 + 비밀번호 재확인)
+    public void deleteTeamWithPassword(Long teamId, Long requesterUserId, String password) {
+        // 팀 존재 확인 + 방장 검증
         getTeamOrThrow(teamId);
         validateOwner(teamId, requesterUserId);
+
+        // 비밀번호 검증
+        User user = userRepository.findById(requesterUserId)
+                .orElseThrow(() -> new IllegalArgumentException("user not found"));
+
+        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
+            throw new IllegalArgumentException("invalid password");
+        }
 
         // 팀의 모든 할 일 배정 제거
         teamFloorStatusRepository.deleteByTeamFloor_Team_Id(teamId);
@@ -172,7 +184,7 @@ public class TeamService {
             throw new IllegalArgumentException("owner cannot leave; delete team instead");
         }
 
-        // 탈퇴 시 배정된 할 일 맵핑 제거 - 배정 삭제 (할 일은 배장자 미정상태로 남음)
+        // 탈퇴 시 배정된 할 일 맵핑 제거 (할 일은 미정 상태로 유지)
         teamFloorStatusRepository
                 .deleteByIdUserIdAndTeamFloor_Team_Id(userId, teamId);
 

@@ -45,8 +45,8 @@ public class SecurityConfig {
                         "/css/**", "/js/**", "/images/**", "/webjars/**", "/static/**").permitAll()
                 // Health check pages
                 .requestMatchers("/health/**", "/api/health/**").permitAll()
-                // Swagger/OpenAPI docs
-                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                // Swagger/OpenAPI docs are NOT public (secured via SwaggerBasicAuthConfig or JWT)
+                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").authenticated()
                 // Allow CORS preflight requests universally
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 // Auth endpoints

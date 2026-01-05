@@ -46,4 +46,13 @@ public class EmailHealthController {
                 .message(message)
                 .build());
     }
+
+    @org.springframework.web.bind.annotation.PostMapping("/check-lock")
+    public ResponseEntity<Boolean> checkLock(@org.springframework.web.bind.annotation.RequestBody java.util.Map<String, String> body) {
+        String input = body.get("password");
+        // default to gangster123 if not set, or you can choose to fail.
+        // User asked to move it to env var. 
+        String expected = env.getProperty("app.health.password", "gangster123");
+        return ResponseEntity.ok(expected != null && expected.equals(input));
+    }
 }

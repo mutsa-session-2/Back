@@ -2,6 +2,8 @@ package floorida.example.floorida.Exception.Handler;
 
 import floorida.example.floorida.Exception.Item.AlreadyOwnedItemException;
 import floorida.example.floorida.Exception.Item.NotEnoughCoinException;
+import floorida.example.floorida.Exception.Item.TeamAccessDeniedException;
+import floorida.example.floorida.Exception.Item.TeamNotFoundException;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -176,5 +178,16 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handleUnknown(Exception e) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of("message", "internal server error"));
+    }
+
+    //캐릭터 조회 관련 exception handler
+    @ExceptionHandler(TeamAccessDeniedException.class)
+    public ResponseEntity<String> handleTeamAccessDenied(TeamAccessDeniedException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+    }
+
+    @ExceptionHandler(TeamNotFoundException.class)
+    public ResponseEntity<String> handleTeamNotFound(TeamNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
     }
 }

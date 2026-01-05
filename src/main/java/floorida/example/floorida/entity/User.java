@@ -38,4 +38,21 @@ public class User {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
+    // ===== Email verification =====
+    // 기존 사용자 호환: null이면 이미 인증된 것으로 간주할 수 있도록 Boolean 래퍼 사용
+    @Column(name = "email_verified")
+    private Boolean emailVerified;
+
+    @Column(name = "email_verified_at")
+    private Instant emailVerifiedAt;
+
+    @Column(name = "email_verification_token_hash", length = 64)
+    private String emailVerificationTokenHash;
+
+    @Column(name = "email_verification_token_expires_at")
+    private Instant emailVerificationTokenExpiresAt;
+
+    @Column(name = "email_verification_sent_at")
+    private Instant emailVerificationSentAt;
 }

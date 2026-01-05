@@ -2,6 +2,8 @@ package floorida.example.floorida.Exception.Handler;
 
 import floorida.example.floorida.Exception.Item.AlreadyOwnedItemException;
 import floorida.example.floorida.Exception.Item.NotEnoughCoinException;
+import floorida.example.floorida.Exception.Item.TeamAccessDeniedException;
+import floorida.example.floorida.Exception.Item.TeamNotFoundException;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -9,7 +11,6 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestControllerAdvice
@@ -31,29 +32,28 @@ public class GlobalExceptionHandler {
     }
 
     // ===== Validation (@Valid) =====
-    // DTO에 @NotNull, @NotBlank 등 걸어둔 경우 여기로 들어옴 (400)
+    // DTO @NotBlank, @NotNull 등 검증 실패 시 400 반환
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<?> handleMethodArgumentNotValid(MethodArgumentNotValidException e) {
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("message", "validation failed");
+    public ResponseEntity<?> handleValidation(MethodArgumentNotValidException e) {
+        String msg = "invalid request";
 
-        // 어떤 필드가 왜 실패했는지 같이 내려주면 프론트/테스트가 훨씬 편해짐
-        Map<String, String> errors = new LinkedHashMap<>();
-        e.getBindingResult().getFieldErrors().forEach(fe -> {
-            // 같은 필드 에러가 여러개면 마지막이 덮어쓰게 됨(원하면 리스트로 바꿀 수 있음)
-            errors.put(fe.getField(), fe.getDefaultMessage());
-        });
+        // 첫 번째 에러 메시지 우선 반환(너무 길어지는 거 방지)
+        if (e.getBindingResult() != null && e.getBindingResult().getFieldError() != null) {
+            String field = e.getBindingResult().getFieldError().getField();
+            String fieldMsg = e.getBindingResult().getFieldError().getDefaultMessage();
+            msg = field + ": " + fieldMsg;
+        }
 
-        body.put("errors", errors);
-        return ResponseEntity.badRequest().body(body);
+        return ResponseEntity.badRequest()
+                .body(Map.of("message", msg));
     }
 
-    // ===== EntityNotFoundException =====
-    // JPA findById().orElseThrow(EntityNotFoundException) 같은 케이스는 404로 처리
+    // ===== JPA NotFound =====
+    // EntityNotFoundException을 그대로 두면 500으로 떨어질 수 있어서 404로 매핑
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<?> handleEntityNotFound(EntityNotFoundException e) {
         String msg = e.getMessage();
-        if (msg == null || msg.isBlank()) msg = "not found";
+        if (msg == null) msg = "not found";
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(Map.of("message", msg));
     }
@@ -93,13 +93,6 @@ public class GlobalExceptionHandler {
                     .body(Map.of("message", msg));
         }
 
-        // --- TeamFloor 권한(배정자만 가능 등) ---
-        // 너 코드에서: "Only assignees can complete/cancel this task."
-        if (msg.toLowerCase().contains("only assignees")) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("message", msg));
-        }
-
         // --- Conflict: already joined ---
         if ("already joined this team".equalsIgnoreCase(msg)) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
@@ -131,10 +124,17 @@ public class GlobalExceptionHandler {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("message", msg));
         }
+        if ("user not found".equalsIgnoreCase(msg)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", msg));
+        }
+        if ("invalid join code".equalsIgnoreCase(msg)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", msg));
+        }
 
-        // --- TeamFloor validation (기간 밖 dueDate 등) ---
-        // 너 서비스에서: "dueDate out of team period"
-        if ("dueDate out of team period".equalsIgnoreCase(msg)) {
+        // --- Password (팀 삭제 재인증) ---
+        if ("invalid password".equalsIgnoreCase(msg)) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("message", msg));
         }
@@ -172,13 +172,22 @@ public class GlobalExceptionHandler {
                 .body(Map.of("message", msg));
     }
 
-    // ===== Fallback (500) =====
-    // 위에서 못 잡은 예외는 여기로. 응답 포맷 통일 + 디버깅용
+    // ===== Fallback =====
+    // 예상 못한 예외는 500으로 떨어지되, message는 과하게 노출하지 않음(보안/UX)
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<?> handleException(Exception e) {
-        String msg = e.getMessage();
-        if (msg == null || msg.isBlank()) msg = "internal server error";
+    public ResponseEntity<?> handleUnknown(Exception e) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("message", msg));
+                .body(Map.of("message", "internal server error"));
+    }
+
+    //캐릭터 조회 관련 exception handler
+    @ExceptionHandler(TeamAccessDeniedException.class)
+    public ResponseEntity<String> handleTeamAccessDenied(TeamAccessDeniedException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+    }
+
+    @ExceptionHandler(TeamNotFoundException.class)
+    public ResponseEntity<String> handleTeamNotFound(TeamNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
     }
 }

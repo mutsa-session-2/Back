@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Email Health</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 24px; }
+    code, pre { background: #f4f4f4; padding: 2px 6px; border-radius: 4px; }
+    .ok { color: #0a7a0a; font-weight: 600; }
+    .bad { color: #b00020; font-weight: 600; }
+    .row { margin: 8px 0; }
+  </style>
+</head>
+<body>
+  <h1>Email Health</h1>
+  <div id="status">로딩 중...</div>
+  <pre id="json"></pre>
+
+  <h2>테스트 메일 발송</h2>
+  <div class="row">
+    <label>
+      수신자 이메일:
+      <input id="to" type="email" placeholder="you@example.com" style="width: 320px;" />
+    </label>
+  </div>
+  <div class="row">
+    <label>
+      X-Health-Token:
+      <input id="token" type="password" placeholder="APP_HEALTH_TOKEN" style="width: 320px;" />
+    </label>
+  </div>
+  <div class="row">
+    <button id="send">테스트 메일 보내기</button>
+  </div>
+  <pre id="sendResult"></pre>
+
+  <h2>이메일 인증 링크 발급</h2>
+  <div class="row">
+    <div>가입된 이메일로 토큰을 발급하고(메일 발송 없음) 인증 링크를 반환합니다.</div>
+  </div>
+  <div class="row">
+    <button id="issue">인증 링크 생성</button>
+  </div>
+  <pre id="issueResult"></pre>
+
+  <script>
+    async function run() {
+      const statusEl = document.getElementById('status');
+      const jsonEl = document.getElementById('json');
+      try {
+        const res = await fetch('/api/health/email', { headers: { 'Accept': 'application/json' }});
+        const body = await res.json();
+        jsonEl.textContent = JSON.stringify(body, null, 2);
+        if (res.ok && body.status === 'OK') {
+          statusEl.innerHTML = '<span class="ok">OK</span> 이메일 설정이 유효해 보입니다.';
+        } else {
+          statusEl.innerHTML = '<span class="bad">WARN</span> 설정 누락/비활성화가 있습니다.';
+        }
+      } catch (e) {
+        statusEl.innerHTML = '<span class="bad">ERROR</span> /api/health/email 호출 실패';
+        jsonEl.textContent = String(e);
+      }
+    }
+
+    async function sendTest() {
+      const to = document.getElementById('to').value;
+      const token = document.getElementById('token').value;
+      const out = document.getElementById('sendResult');
+      out.textContent = 'sending...';
+      try {
+        const res = await fetch('/api/health/email/send-test', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Health-Token': token,
+          },
+          body: JSON.stringify({ to }),
+        });
+        const text = await res.text();
+        out.textContent = res.status + ' ' + text;
+      } catch (e) {
+        out.textContent = 'ERROR ' + String(e);
+      }
+    }
+
+    async function issueVerification() {
+      const to = document.getElementById('to').value;
+      const token = document.getElementById('token').value;
+      const out = document.getElementById('issueResult');
+      out.textContent = 'issuing...';
+      try {
+        const res = await fetch('/api/health/email/issue-verification', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Health-Token': token,
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify({ to }),
+        });
+        const text = await res.text();
+        try {
+          out.textContent = JSON.stringify(JSON.parse(text), null, 2);
+        } catch (_) {
+          out.textContent = res.status + ' ' + text;
+        }
+      } catch (e) {
+        out.textContent = 'ERROR ' + String(e);
+      }
+    }
+
+    document.getElementById('send').addEventListener('click', sendTest);
+    document.getElementById('issue').addEventListener('click', issueVerification);
+    run();
+  </script>
+</body>
+</html>

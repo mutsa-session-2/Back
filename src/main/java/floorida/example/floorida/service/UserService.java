@@ -41,6 +41,8 @@ public class UserService {
         user.setEmail(req.getEmail());
         user.setUsername(req.getUsername());
         user.setPasswordHash(passwordEncoder.encode(req.getPassword()));
+        // 신규 가입자는 이메일 인증 전까지 로그인 불가
+        user.setEmailVerified(Boolean.FALSE);
         User savedUser = userRepository.save(user);
         
         // 회원가입 시 기본 캐릭터 자동 생성
@@ -54,6 +56,11 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
         if (!passwordEncoder.matches(req.getPassword(), user.getPasswordHash())) {
             throw new IllegalArgumentException("Invalid credentials");
+        }
+
+        // 이메일 인증이 명시적으로 false인 경우만 차단 (기존 유저 null은 통과)
+        if (Boolean.FALSE.equals(user.getEmailVerified())) {
+            throw new IllegalArgumentException("Email not verified");
         }
 
         // 처음 로그인한 사용자라면 UserProfile 생성 + 50코인 지급

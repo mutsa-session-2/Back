@@ -3,8 +3,10 @@ package floorida.example.floorida.Item.controller;
 import floorida.example.floorida.Item.UserDetails.CustomUserDetails;
 import floorida.example.floorida.Item.dto.response.ItemResponse;
 import floorida.example.floorida.Item.dto.response.MyItemResponse;
+import floorida.example.floorida.Item.dto.response.TeamMemberCharacterResponse;
 import floorida.example.floorida.Item.entity.ItemType;
 import floorida.example.floorida.Item.service.ItemService;
+import floorida.example.floorida.Item.service.TeamCharacterService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -23,6 +25,7 @@ import java.util.List;
 public class ItemController {
 
     private final ItemService itemService;
+    private final TeamCharacterService teamCharacterService;
 
     @Operation(
             summary = "아이템 목록 조회",
@@ -142,6 +145,38 @@ public class ItemController {
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         return itemService.getEquippedItems(userDetails.getUserId());
+    }
+
+    @Operation(
+            summary = "팀원 캐릭터 상태 조회",
+            description = """
+                    팀플레이스에서 사용하기 위한 API입니다.
+                    특정 팀에 속한 모든 팀원의 캐릭터(장착 아이템) 상태를 조회합니다.
+                    
+                    ✔ 요청자는 반드시 해당 팀의 멤버여야 합니다.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "팀원 캐릭터 상태 조회 성공"),
+            @ApiResponse(responseCode = "401", description = "인증 실패"),
+            @ApiResponse(responseCode = "403", description = "팀 소속 아님"),
+            @ApiResponse(responseCode = "404", description = "팀 없음")
+    })
+    @GetMapping("/{teamId}/characters")
+    public List<TeamMemberCharacterResponse> getTeamCharacters(
+            @Parameter(
+                    description = "조회할 팀 ID",
+                    example = "1"
+            )
+            @PathVariable Long teamId,
+
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        return teamCharacterService.getTeamMembersCharacter(
+                teamId,
+                userDetails.getUserId()
+        );
     }
 
 }

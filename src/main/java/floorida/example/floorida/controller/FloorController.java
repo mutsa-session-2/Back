@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -261,5 +262,57 @@ public class FloorController {
         @Valid @RequestBody FloorUpdateRequest req
     ) {
         return ResponseEntity.ok(floorService.updateFloor(floorId, req));
+    }
+
+    @DeleteMapping("/{floorId}")
+    @Operation(
+        summary = "Floor 삭제",
+        description = """
+            지정한 Floor(세부 일정)를 영구 삭제합니다.
+
+            - 연관된 완료 기록(FloorStatus)도 함께 정리되어 500 오류가 발생하지 않도록 처리합니다.
+            - JWT 토큰 필수
+            - 본인이 생성한 Floor만 삭제 가능
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "204", description = "삭제 성공 (응답 본문 없음)"),
+        @ApiResponse(responseCode = "401", description = "인증 실패"),
+        @ApiResponse(responseCode = "403", description = "권한 없음"),
+        @ApiResponse(responseCode = "404", description = "Floor 없음")
+    })
+    public ResponseEntity<Void> deleteFloor(
+        @Parameter(description = "삭제할 Floor ID", required = true, example = "1")
+        @PathVariable Long floorId
+    ) {
+        floorService.deleteFloor(floorId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/schedule/{scheduleId}")
+    @Operation(
+        summary = "(호환용) 일정 삭제",
+        description = """
+            일정 ID(scheduleId)에 대해 **일정 자체를 삭제**합니다.
+            (기존 클라이언트 호환을 위해 `/api/floors/schedule/{scheduleId}` 경로를 유지합니다)
+
+            - 일정에 포함된 모든 Floor(세부 일정)도 함께 영구 제거됩니다.
+            - 연관된 완료 기록(FloorStatus)도 함께 정리되어 500 오류가 발생하지 않도록 처리합니다.
+            - JWT 토큰 필수
+            - 본인이 생성한 일정만 삭제 가능
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "204", description = "삭제 성공 (응답 본문 없음)"),
+        @ApiResponse(responseCode = "401", description = "인증 실패"),
+        @ApiResponse(responseCode = "403", description = "권한 없음"),
+        @ApiResponse(responseCode = "404", description = "Schedule 없음")
+    })
+    public ResponseEntity<Void> deleteFloorsBySchedule(
+        @Parameter(description = "floors를 삭제할 일정 ID", required = true, example = "1")
+        @PathVariable Long scheduleId
+    ) {
+        floorService.deleteFloorsBySchedule(scheduleId);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -5,6 +5,7 @@ import floorida.example.floorida.Exception.Item.NotEnoughCoinException;
 import floorida.example.floorida.Exception.Item.TeamAccessDeniedException;
 import floorida.example.floorida.Exception.Item.TeamNotFoundException;
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -69,7 +70,7 @@ public class GlobalExceptionHandler {
         }
 
         // --- Auth ---
-        if ("unauthorized".equalsIgnoreCase(msg)) {
+        if ("unauthorized".equalsIgnoreCase(msg) || "unauthenticated".equalsIgnoreCase(msg)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("message", msg));
         }
@@ -128,9 +129,23 @@ public class GlobalExceptionHandler {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("message", msg));
         }
+        if ("schedule not found".equalsIgnoreCase(msg)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("message", msg));
+        }
+        if ("floor not found".equalsIgnoreCase(msg)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("message", msg));
+        }
         if ("invalid join code".equalsIgnoreCase(msg)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("message", msg));
+        }
+
+        // --- Permission ---
+        if (msg.toLowerCase().startsWith("not authorized")) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("message", msg));
         }
 
         // --- Password (팀 삭제 재인증) ---
@@ -170,6 +185,14 @@ public class GlobalExceptionHandler {
         // 그 외 검증 오류는 400
         return ResponseEntity.badRequest()
                 .body(Map.of("message", msg));
+    }
+
+    // ===== DB Integrity / FK constraint =====
+    // FK 제약 등으로 삭제/수정이 실패하는 경우 409로 매핑
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<?> handleDataIntegrityViolation(DataIntegrityViolationException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("message", "conflict"));
     }
 
     // ===== Fallback =====

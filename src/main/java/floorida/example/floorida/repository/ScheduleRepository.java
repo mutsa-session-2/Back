@@ -14,5 +14,6 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
     List<Schedule> findByCreatorUserId(Long creatorUserId);
     List<Schedule> findByTeamId(Long teamId);
     Optional<Schedule> findByScheduleIdAndCreatorUserId(Long id, Long creatorUserId);
+    boolean existsByScheduleIdAndCreatorUserId(Long id, Long creatorUserId);
     List<Schedule> findByCreatorUserIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(Long creatorUserId, LocalDate start, LocalDate end);
 }

@@ -187,14 +187,14 @@ public class TeamController {
         return ResponseEntity.ok().build();
     }
 
-    // 3) 팀 멤버 목록 조회 (userId + role)
+    // 3) 팀 멤버 목록 조회 (userId + username + role)
     @GetMapping("/{teamId}/members")
     @Operation(
             summary = "팀 멤버 목록 조회",
             description =
                     "팀에 속한 멤버 목록을 조회합니다.\n\n" +
                             "반환:\n" +
-                            "- 각 멤버의 userId와 role을 반환합니다.\n\n" +
+                            "- 각 멤버의 userId, username, role을 반환합니다.\n\n" +
                             "접근 조건:\n" +
                             "- 팀 멤버만 조회 가능(비멤버는 403)\n\n" +
                             "권한:\n" +
@@ -209,8 +209,8 @@ public class TeamController {
                             array = @ArraySchema(schema = @Schema(implementation = TeamMemberResponse.class)),
                             examples = @ExampleObject(
                                     value = "[\n" +
-                                            "  { \"userId\": 1, \"role\": \"OWNER\" },\n" +
-                                            "  { \"userId\": 2, \"role\": \"MEMBER\" }\n" +
+                                            "  { \"userId\": 1, \"username\": \"테스트유저\", \"role\": \"owner\" },\n" +
+                                            "  { \"userId\": 2, \"username\": \"김멋사\", \"role\": \"member\" }\n" +
                                             "]"
                             )
                     )
@@ -261,14 +261,20 @@ public class TeamController {
         teamService.getTeamOrThrow(teamId);              // 404
         teamService.getMember(teamId, me.getUserId());   // 403
 
-        List<Object[]> rows = teamMemberRepository.findUserIdAndRoleByTeamId(teamId);
+        // repository도 username까지 조회하도록 변경된 메서드 사용
+        List<Object[]> rows = teamMemberRepository.findUserIdUsernameAndRoleByTeamId(teamId);
 
         List<TeamMemberResponse> result = rows.stream()
-                .map(r -> new TeamMemberResponse((Long) r[0], (String) r[1]))
+                .map(r -> new TeamMemberResponse(
+                        (Long) r[0],     // userId
+                        (String) r[1],   // username
+                        (String) r[2]    // role
+                ))
                 .toList();
 
         return ResponseEntity.ok(result);
     }
+
 
     // 4) 내 팀 목록 조회
     @GetMapping

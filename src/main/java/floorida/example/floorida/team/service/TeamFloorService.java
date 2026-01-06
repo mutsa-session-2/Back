@@ -21,6 +21,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -90,20 +92,43 @@ public class TeamFloorService {
     public List<TeamFloorResponse> listTeamFloors(Long requesterUserId, Long teamId) {
         teamService.getMember(teamId, requesterUserId);
 
-        return teamFloorRepository.findByTeam_IdOrderByDueDateAscCreatedAtAsc(teamId)
-                .stream()
-                .map(f -> new TeamFloorResponse(
-                        f.getId(),
-                        f.getTeam().getId(),
-                        f.getTitle(),
-                        f.getDueDate(),
-                        f.isCompleted(),
-                        f.getCompletedAt(),
-                        teamFloorStatusRepository.findByIdTeamFloorId(f.getId())
-                                .stream()
-                                .map(s -> s.getUser().getUserId())
-                                .toList()
-                ))
+        List<TeamFloor> floors = teamFloorRepository.findByTeam_IdOrderByDueDateAscCreatedAtAsc(teamId);
+        if (floors.isEmpty()) return Collections.emptyList();
+
+        List<Long> floorIds = floors.stream().map(TeamFloor::getId).toList();
+
+        // 한번에 status 조회 (N+1 방지)
+        List<TeamFloorStatus> statuses = teamFloorStatusRepository.findByIdTeamFloorIdIn(floorIds);
+
+        Map<Long, List<TeamFloorStatus>> statusByFloorId =
+                statuses.stream().collect(Collectors.groupingBy(s -> s.getTeamFloor().getId()));
+
+        return floors.stream()
+                .map(f -> {
+                    List<TeamFloorStatus> ss = statusByFloorId.getOrDefault(f.getId(), Collections.emptyList());
+
+                    List<Long> assigneeUserIds = ss.stream()
+                            .map(s -> s.getUser().getUserId())
+                            .toList();
+
+                    List<TeamFloorResponse.AssigneeInfo> assignees = ss.stream()
+                            .map(s -> new TeamFloorResponse.AssigneeInfo(
+                                    s.getUser().getUserId(),
+                                    s.getUser().getUsername()
+                            ))
+                            .toList();
+
+                    return new TeamFloorResponse(
+                            f.getId(),
+                            f.getTeam().getId(),
+                            f.getTitle(),
+                            f.getDueDate(),
+                            f.isCompleted(),
+                            f.getCompletedAt(),
+                            assigneeUserIds,
+                            assignees
+                    );
+                })
                 .toList();
     }
 
@@ -115,32 +140,72 @@ public class TeamFloorService {
     public List<TeamFloorResponse> listIncompleteTeamFloors(Long requesterUserId, Long teamId) {
         teamService.getMember(teamId, requesterUserId);
 
-        return teamFloorRepository.findByTeam_IdAndCompletedFalseOrderByDueDateAscCreatedAtAsc(teamId)
-                .stream()
-                .map(f -> new TeamFloorResponse(
-                        f.getId(),
-                        f.getTeam().getId(),
-                        f.getTitle(),
-                        f.getDueDate(),
-                        f.isCompleted(),
-                        f.getCompletedAt(),
-                        teamFloorStatusRepository.findByIdTeamFloorId(f.getId())
-                                .stream()
-                                .map(s -> s.getUser().getUserId())
-                                .toList()
-                ))
+        List<TeamFloor> floors = teamFloorRepository.findByTeam_IdAndCompletedFalseOrderByDueDateAscCreatedAtAsc(teamId);
+        if (floors.isEmpty()) return Collections.emptyList();
+
+        List<Long> floorIds = floors.stream().map(TeamFloor::getId).toList();
+        List<TeamFloorStatus> statuses = teamFloorStatusRepository.findByIdTeamFloorIdIn(floorIds);
+
+        Map<Long, List<TeamFloorStatus>> statusByFloorId =
+                statuses.stream().collect(Collectors.groupingBy(s -> s.getTeamFloor().getId()));
+
+        return floors.stream()
+                .map(f -> {
+                    List<TeamFloorStatus> ss = statusByFloorId.getOrDefault(f.getId(), Collections.emptyList());
+
+                    List<Long> assigneeUserIds = ss.stream()
+                            .map(s -> s.getUser().getUserId())
+                            .toList();
+
+                    List<TeamFloorResponse.AssigneeInfo> assignees = ss.stream()
+                            .map(s -> new TeamFloorResponse.AssigneeInfo(
+                                    s.getUser().getUserId(),
+                                    s.getUser().getUsername()
+                            ))
+                            .toList();
+
+                    return new TeamFloorResponse(
+                            f.getId(),
+                            f.getTeam().getId(),
+                            f.getTitle(),
+                            f.getDueDate(),
+                            f.isCompleted(),
+                            f.getCompletedAt(),
+                            assigneeUserIds,
+                            assignees
+                    );
+                })
                 .toList();
     }
+
 
     /* =========================================================
        4) 할 일 상세 조회 (member)
        ========================================================= */
     @Transactional(readOnly = true)
-    public TeamFloorDetailResponse getTeamFloorDetail(Long requesterUserId, Long teamId, Long teamFloorId) {
+    public TeamFloorDetailResponse getTeamFloorDetail(
+            Long requesterUserId,
+            Long teamId,
+            Long teamFloorId
+    ) {
         teamService.getMember(teamId, requesterUserId);
 
         TeamFloor floor = teamFloorRepository.findByIdAndTeam_Id(teamFloorId, teamId)
                 .orElseThrow(() -> new EntityNotFoundException("TeamFloor not found"));
+
+        List<TeamFloorStatus> statuses =
+                teamFloorStatusRepository.findByIdTeamFloorId(teamFloorId);
+
+        List<Long> assigneeUserIds = statuses.stream()
+                .map(s -> s.getUser().getUserId())
+                .toList();
+
+        List<TeamFloorDetailResponse.AssigneeInfo> assignees = statuses.stream()
+                .map(s -> new TeamFloorDetailResponse.AssigneeInfo(
+                        s.getUser().getUserId(),
+                        s.getUser().getUsername()
+                ))
+                .toList();
 
         return new TeamFloorDetailResponse(
                 floor.getId(),
@@ -149,12 +214,11 @@ public class TeamFloorService {
                 floor.getDueDate(),
                 floor.isCompleted(),
                 floor.getCompletedAt(),
-                teamFloorStatusRepository.findByIdTeamFloorId(teamFloorId)
-                        .stream()
-                        .map(s -> s.getUser().getUserId())
-                        .toList()
+                assigneeUserIds,
+                assignees
         );
     }
+
 
     /* =========================================================
        5) 할 일 수정 (owner)

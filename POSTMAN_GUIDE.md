@@ -112,30 +112,14 @@ Content-Type: application/json
 Authorization: Bearer {{JWT_TOKEN}}
 ```
 
-**Body (JSON) - 새 필드 포함:**
+**Body (JSON):**
 ```json
 {
   "title": "토익 900점 달성",
-  "originalGoal": "3주 안에 토익 900점 달성하기",
-  "goalSummary": "RC와 LC를 균형있게 학습하며 실전 모의고사 중심으로 준비",
   "startDate": "2025-11-16",
   "endDate": "2025-12-07",
   "color": "#2E8B57",
-  "teamId": null,
-  "floors": [
-    {
-      "title": "RC 파트 기본 문법 복습",
-      "scheduledDate": "2025-11-16"
-    },
-    {
-      "title": "LC Part 1-2 집중 훈련",
-      "scheduledDate": "2025-11-17"
-    },
-    {
-      "title": "실전 모의고사 1회",
-      "scheduledDate": "2025-11-20"
-    }
-  ]
+  "teamId": null
 }
 ```
 
@@ -218,10 +202,104 @@ Authorization: Bearer {{JWT_TOKEN}}
     }
     // ... AI가 생성한 나머지 floors
   ]
-}
+
+---
+
+## 삭제 API
+
+### ✅ Floor 단건 삭제 (DELETE /api/floors/{floorId})
+
+**URL:** `{{BASE_URL}}/api/floors/{{FLOOR_ID}}`
+
+**Headers:**
+```
+Authorization: Bearer {{JWT_TOKEN}}
 ```
 
+**예상 응답 (204):**
+```
+(no content)
+```
+
+**설명:**
+- 해당 Floor(세부 일정)만 삭제합니다.
+- 완료 기록(FloorStatus)이 있어도 함께 정리되어 500이 발생하지 않습니다.
+
+---
+
+### ✅ 일정의 floors 일괄 삭제 (DELETE /api/floors/schedule/{scheduleId})
+
+**URL:** `{{BASE_URL}}/api/floors/schedule/{{SCHEDULE_ID}}`
+
+**Headers:**
+```
+Authorization: Bearer {{JWT_TOKEN}}
+```
+
+**예상 응답 (204):**
+```
+(no content)
+```
+
+**설명:**
+- 일정(Schedule) 자체를 삭제합니다. (일정이 삭제되면 포함된 floors도 같이 삭제됩니다)
+- 완료 기록(FloorStatus)도 함께 정리됩니다.
+
+---
+
+### ✅ 일정 삭제 (DELETE /api/schedules/{id})
+
+**URL:** `{{BASE_URL}}/api/schedules/{{SCHEDULE_ID}}`
+
+**Headers:**
+```
+Authorization: Bearer {{JWT_TOKEN}}
+```
+
+**예상 응답 (204):**
+```
+(no content)
+```
+
+**설명:**
+- 일정을 삭제합니다. 포함된 floors와 완료 기록도 함께 삭제됩니다.
+
+
 **💡 참고:** `title`을 생략하면 `goal` 값이 그대로 제목으로 사용됩니다.
+
+---
+
+### ✅ 내 일정 목록 조회 (GET /api/schedules)
+
+**URL:** `{{BASE_URL}}/api/schedules`
+
+**Headers:**
+```
+Authorization: Bearer {{JWT_TOKEN}}
+```
+
+**예상 응답 (200):**
+```json
+[
+  {
+    "scheduleId": 1,
+    "title": "토익 900점 달성",
+    "originalGoal": "토익 900점 달성",
+    "goalSummary": null,
+    "startDate": "2025-11-16",
+    "endDate": "2025-12-07",
+    "color": "#2E8B57",
+    "teamId": null,
+    "floors": [
+      {
+        "floorId": 1,
+        "title": "1일 차",
+        "scheduledDate": "2025-11-16"
+      }
+    ]
+  }
+]
+```
 
 ---
 

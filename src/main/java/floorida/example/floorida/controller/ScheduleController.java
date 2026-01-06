@@ -1,5 +1,7 @@
 package floorida.example.floorida.controller;
 
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -31,6 +33,41 @@ public class ScheduleController {
 
     public ScheduleController(ScheduleService scheduleService) {
         this.scheduleService = scheduleService;
+    }
+
+    @GetMapping("")
+    @Operation(
+      summary = "내 일정 목록 조회",
+      description = """
+        로그인한 사용자가 생성한 일정 목록을 조회합니다.
+
+        **권한:**
+        - JWT 토큰 필수
+        """
+    )
+    @ApiResponses({
+      @ApiResponse(
+        responseCode = "200",
+        description = "조회 성공",
+        content = @Content(
+          mediaType = "application/json",
+          schema = @Schema(implementation = ScheduleResponse.class)
+        )
+      ),
+      @ApiResponse(
+        responseCode = "401",
+        description = "인증 실패",
+        content = @Content(mediaType = "application/json")
+      )
+    })
+    public ResponseEntity<List<ScheduleResponse>> listMySchedules() {
+      return ResponseEntity.ok(scheduleService.listMySchedules());
+    }
+
+    @GetMapping("/")
+    @Operation(hidden = true)
+    public ResponseEntity<List<ScheduleResponse>> listMySchedulesTrailingSlash() {
+      return listMySchedules();
     }
 
     @PostMapping("")
@@ -621,7 +658,10 @@ public class ScheduleController {
             **주의사항:**
             - 삭제된 일정은 복구할 수 없습니다
             - 포함된 모든 세부 계획(Floor)도 함께 영구 제거됩니다
-            - 연관된 완료 기록도 모두 삭제됩니다 (Cascade)
+            - 연관된 완료 기록(FloorStatus)도 함께 삭제됩니다
+
+            **참고:**
+            - 일정을 유지한 채 floors만 비우려면 `DELETE /api/floors/schedule/{scheduleId}`를 사용하세요
             
             **권한:**
             - JWT 토큰 필수

@@ -12,25 +12,30 @@ import floorida.example.floorida.dto.FloorResponse;
 import floorida.example.floorida.dto.FloorUpdateRequest;
 import floorida.example.floorida.entity.FloorPlan;
 import floorida.example.floorida.entity.FloorStatus;
+import floorida.example.floorida.entity.Schedule;
 import floorida.example.floorida.entity.User;
 import floorida.example.floorida.repository.FloorPlanRepository;
 import floorida.example.floorida.repository.FloorStatusRepository;
+import floorida.example.floorida.repository.ScheduleRepository;
 
 @Service
 public class FloorService {
     private final FloorPlanRepository floorPlanRepository;
     private final FloorStatusRepository floorStatusRepository;
+    private final ScheduleRepository scheduleRepository;
     private final CurrentUserService currentUserService;
     private final UserProfileService userProfileService;
     private final BadgeService badgeService;
 
     public FloorService(FloorPlanRepository floorPlanRepository,
                         FloorStatusRepository floorStatusRepository,
+                        ScheduleRepository scheduleRepository,
                         CurrentUserService currentUserService,
                         UserProfileService userProfileService,
                         BadgeService badgeService) {
         this.floorPlanRepository = floorPlanRepository;
         this.floorStatusRepository = floorStatusRepository;
+        this.scheduleRepository = scheduleRepository;
         this.currentUserService = currentUserService;
         this.userProfileService = userProfileService;
         this.badgeService = badgeService;
@@ -144,6 +149,43 @@ public class FloorService {
 
         FloorPlan saved = floorPlanRepository.save(floor);
         return toResponse(saved);
+    }
+
+    /**
+     * Floor 삭제
+     * - FloorStatus가 남아있으면 FK 제약으로 500이 발생할 수 있으므로 선삭제합니다.
+     */
+    @Transactional
+    public void deleteFloor(Long floorId) {
+        User user = currentUserService.getCurrentUser()
+                .orElseThrow(() -> new IllegalStateException("Unauthenticated"));
+
+        FloorPlan floor = floorPlanRepository.findById(floorId)
+                .orElseThrow(() -> new IllegalArgumentException("Floor not found"));
+
+        if (!floor.getCreatorUserId().equals(user.getUserId())) {
+            throw new IllegalArgumentException("Not authorized to delete this floor");
+        }
+
+        floorStatusRepository.deleteByFloorId(floorId);
+        floorPlanRepository.delete(floor);
+    }
+
+    /**
+     * 일정(scheduleId)에 속한 floors 삭제 요청
+     * - floors만 지우면 일정이 의미가 없으므로, 일정 자체를 삭제합니다.
+     * - FloorStatus는 FK 제약으로 인해 먼저 정리합니다.
+     */
+    @Transactional
+    public void deleteFloorsBySchedule(Long scheduleId) {
+        User user = currentUserService.getCurrentUser()
+                .orElseThrow(() -> new IllegalStateException("Unauthenticated"));
+
+        Schedule schedule = scheduleRepository.findByScheduleIdAndCreatorUserId(scheduleId, user.getUserId())
+                .orElseThrow(() -> new IllegalArgumentException("Schedule not found"));
+
+        floorStatusRepository.deleteByScheduleId(scheduleId);
+        scheduleRepository.delete(schedule);
     }
 
     private FloorResponse toResponse(FloorPlan floor) {

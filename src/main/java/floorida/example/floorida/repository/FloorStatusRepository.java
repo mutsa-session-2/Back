@@ -28,6 +28,24 @@ public interface FloorStatusRepository extends JpaRepository<FloorStatus, Long> 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
         delete from FloorStatus fs
+        where fs.floor.floorId = :floorId
+        """)
+    int deleteByFloorId(@Param("floorId") Long floorId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+        delete from FloorStatus fs
+        where fs.floor.floorId in (
+            select fp.floorId
+            from FloorPlan fp
+            where fp.schedule.scheduleId = :scheduleId
+        )
+        """)
+    int deleteByScheduleId(@Param("scheduleId") Long scheduleId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+        delete from FloorStatus fs
         where fs.user.userId = :userId
            or fs.floor.floorId in (
                 select fp.floorId from FloorPlan fp where fp.creatorUserId = :userId

@@ -10,6 +10,7 @@ import java.util.List;
 
 public interface TeamFloorStatusRepository extends JpaRepository<TeamFloorStatus, TeamFloorStatusId> {
 
+    List<TeamFloorStatus> findByIdTeamFloorIdIn(List<Long> teamFloorIds);
     // 배정자(담당자)인지 체크
     boolean existsByIdTeamFloorIdAndIdUserId(Long teamFloorId, Long userId);
 

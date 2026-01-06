@@ -69,12 +69,35 @@ public class TeamFloorController {
 
     // 2) 팀 할 일 목록 조회 (member)
     // - 배정자 없는 할 일은 assigneeUserIds == [] (미정)
+    // - assignees 필드로 배정자 username까지 함께 제공
     @GetMapping("/{teamId}/floors")
-    @Operation(summary = "팀 할 일 목록 조회", description = "팀 멤버가 팀 할 일 목록을 조회합니다.")
+    @Operation(
+            summary = "팀 할 일 목록 조회",
+            description =
+                    "팀 멤버가 팀 할 일 목록을 조회합니다.\n\n" +
+                            "- 배정자 없는 할 일은 assigneeUserIds == [] (미정)\n" +
+                            "- assignees 필드로 배정자 username까지 함께 제공합니다."
+    )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공",
                     content = @Content(mediaType = "application/json",
-                            array = @ArraySchema(schema = @Schema(implementation = TeamFloorResponse.class)))),
+                            array = @ArraySchema(schema = @Schema(implementation = TeamFloorResponse.class)),
+                            examples = @ExampleObject(value = """
+                                    [
+                                      {
+                                        "teamFloorId": 2,
+                                        "teamId": 7,
+                                        "title": "DFS/BFS 학습",
+                                        "dueDate": "2026-01-10",
+                                        "completed": true,
+                                        "completedAt": "2026-01-04T08:57:21.601027Z",
+                                        "assigneeUserIds": [36],
+                                        "assignees": [
+                                          { "userId": 36, "username": "test1234" }
+                                        ]
+                                      }
+                                    ]
+                                    """))),
             @ApiResponse(responseCode = "401", description = "인증 실패"),
             @ApiResponse(responseCode = "403", description = "팀 멤버가 아님"),
             @ApiResponse(responseCode = "404", description = "팀을 찾을 수 없음")
@@ -88,7 +111,9 @@ public class TeamFloorController {
     @GetMapping("/{teamId}/floors/incomplete")
     @Operation(
             summary = "팀 미완료 할 일 목록 조회",
-            description = "팀 멤버가 미완료(completed=false) 할 일만 모아서 조회합니다."
+            description =
+                    "팀 멤버가 미완료(completed=false) 할 일만 모아서 조회합니다.\n\n" +
+                            "- assignees 필드로 배정자 username까지 함께 제공합니다."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공",
@@ -105,11 +130,30 @@ public class TeamFloorController {
 
     // 4) 할 일 상세 조회 (member)
     @GetMapping("/{teamId}/floors/{teamFloorId}")
-    @Operation(summary = "팀 할 일 상세 조회", description = "팀 멤버가 특정 할 일을 상세 조회합니다.")
+    @Operation(
+            summary = "팀 할 일 상세 조회",
+            description =
+                    "팀 멤버가 특정 할 일을 상세 조회합니다.\n\n" +
+                            "- assignees 필드로 배정자 username까지 함께 제공합니다."
+    )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공",
                     content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = TeamFloorDetailResponse.class))),
+                            schema = @Schema(implementation = TeamFloorDetailResponse.class),
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "teamFloorId": 2,
+                                      "teamId": 7,
+                                      "title": "DFS/BFS 학습",
+                                      "dueDate": "2026-01-10",
+                                      "completed": true,
+                                      "completedAt": "2026-01-04T08:57:21.601027Z",
+                                      "assigneeUserIds": [36],
+                                      "assignees": [
+                                        { "userId": 36, "username": "test1234" }
+                                      ]
+                                    }
+                                    """))),
             @ApiResponse(responseCode = "401", description = "인증 실패"),
             @ApiResponse(responseCode = "403", description = "팀 멤버가 아님"),
             @ApiResponse(responseCode = "404", description = "할 일을 찾을 수 없음")

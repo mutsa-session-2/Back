@@ -8,9 +8,12 @@ import jakarta.persistence.EntityNotFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.NoHandlerFoundException;
 
 import java.util.Map;
 
@@ -193,6 +196,31 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handleDataIntegrityViolation(DataIntegrityViolationException e) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(Map.of("message", "conflict"));
+    }
+
+    // ===== Path Variable Type Mismatch =====
+    // PathVariable 타입 불일치 (예: /api/schedules/abc)
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<?> handleTypeMismatch(MethodArgumentTypeMismatchException e) {
+        String msg = "invalid parameter: " + e.getName();
+        return ResponseEntity.badRequest()
+                .body(Map.of("message", msg));
+    }
+
+    // ===== No Handler Found =====
+    // 존재하지 않는 경로 요청 시 404 반환
+    @ExceptionHandler(NoHandlerFoundException.class)
+    public ResponseEntity<?> handleNoHandlerFound(NoHandlerFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("message", "not found"));
+    }
+
+    // ===== Method Not Supported =====
+    // 지원하지 않는 HTTP 메서드 (예: POST /api/schedules/{id})
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<?> handleMethodNotSupported(HttpRequestMethodNotSupportedException e) {
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
+                .body(Map.of("message", "method not allowed"));
     }
 
     // ===== Fallback =====

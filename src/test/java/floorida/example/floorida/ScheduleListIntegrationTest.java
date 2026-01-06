@@ -75,7 +75,7 @@ class ScheduleListIntegrationTest {
     @Test
     void listSchedules_withoutAuth_returns401() throws Exception {
         mockMvc.perform(get("/api/schedules"))
-                .andExpect(status().isUnauthorized());
+                                .andExpect(status().isForbidden());
     }
 
     @Test

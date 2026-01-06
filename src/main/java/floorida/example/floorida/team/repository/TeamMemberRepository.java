@@ -22,11 +22,12 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
 
     // 특정 팀 멤버 조회: userId + role만 가볍게
     @Query("""
-           select tm.user.userId, tm.role
+           select u.userId, u.username, tm.role
            from TeamMember tm
+           join tm.user u
            where tm.team.id = :teamId
            """)
-    List<Object[]> findUserIdAndRoleByTeamId(@Param("teamId") Long teamId);
+    List<Object[]> findUserIdUsernameAndRoleByTeamId(@Param("teamId") Long teamId);
 
     void deleteByTeam_Id(Long teamId);
 

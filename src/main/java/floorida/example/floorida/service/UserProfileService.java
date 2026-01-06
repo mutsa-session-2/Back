@@ -67,6 +67,9 @@ public class UserProfileService {
             loginDate = LocalDate.now();
         }
 
+        // Legacy/운영 데이터 호환: profile이 없는 기존 유저도 있을 수 있으므로 기본 프로필을 생성합니다.
+        ensureProfileExistsWithoutSignupBonus(userId);
+
         UserProfile profile = userProfileRepository.findById(userId)
                 .orElseThrow(() -> new IllegalStateException("User profile not found"));
 
@@ -75,9 +78,73 @@ public class UserProfileService {
             return false;
         }
 
+        int prevStreak = profile.getDailyLoginStreak() != null ? profile.getDailyLoginStreak() : 0;
+        int nextStreak;
+        if (last == null) {
+            nextStreak = 1;
+        } else if (loginDate.equals(last.plusDays(1))) {
+            nextStreak = prevStreak + 1;
+        } else {
+            nextStreak = 1;
+        }
+
         profile.setPoints(profile.getPoints() + DAILY_LOGIN_REWARD_POINTS);
         profile.setLastDailyLoginRewardDate(loginDate);
+        profile.setDailyLoginStreak(nextStreak);
         return true;
+    }
+
+    /**
+     * 현재(오늘 기준) 유지 중인 연속 출석 일수를 반환합니다.
+     * - 오늘 접속 보상을 이미 받았으면 그 값을 반환
+     * - 아직 오늘 보상을 받지 않았지만 어제가 마지막 접속일이면(오늘 접속 전) 그 값을 반환
+     * - 그 외에는 0
+     */
+    @Transactional(readOnly = true)
+    public int getCurrentDailyLoginStreak(Long userId, LocalDate today) {
+        if (userId == null) {
+            throw new IllegalArgumentException("userId is required");
+        }
+        if (today == null) {
+            today = LocalDate.now();
+        }
+
+        // Legacy/운영 데이터 호환
+        ensureProfileExistsWithoutSignupBonus(userId);
+
+        UserProfile profile = userProfileRepository.findById(userId)
+                .orElseThrow(() -> new IllegalStateException("User profile not found"));
+
+        LocalDate last = profile.getLastDailyLoginRewardDate();
+        int streak = profile.getDailyLoginStreak() != null ? profile.getDailyLoginStreak() : 0;
+        if (last == null) {
+            return 0;
+        }
+        if (today.equals(last) || today.minusDays(1).equals(last)) {
+            return Math.max(streak, 0);
+        }
+        return 0;
+    }
+
+    @Transactional
+    public void ensureProfileExistsWithoutSignupBonus(Long userId) {
+        if (userId == null) {
+            throw new IllegalArgumentException("userId is required");
+        }
+
+        boolean exists = userProfileRepository.existsById(userId);
+        if (exists) {
+            return;
+        }
+
+        UserProfile profile = new UserProfile();
+        profile.setUserId(userId);
+        User managedUserRef = entityManager.getReference(User.class, userId);
+        profile.setUser(managedUserRef);
+        profile.setPoints(0);
+        profile.setPersonalLevel(1);
+        // streak 관련 필드는 기본값(0/null) 그대로 두고 생성
+        entityManager.persist(profile);
     }
 
     /**

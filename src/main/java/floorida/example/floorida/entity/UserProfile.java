@@ -22,6 +22,7 @@ import lombok.Setter;
  * - points: 코인(포인트)
  * - personalLevel: 개인 층수
  * - lastDailyLoginRewardDate: 마지막 '일일 접속 보상' 지급일
+ * - dailyLoginStreak: 일일 접속 보상 기준 연속 출석 일수
  *
  * 온보딩에서 사용할 planningTendency / dailyStudyHours 는
  * 아직 UI/비즈니스 로직이 없으므로 선택 값으로 두고, 이후 확장 시 사용합니다.
@@ -58,6 +59,10 @@ public class UserProfile {
 
     @Column(name = "last_daily_login_reward_date")
     private LocalDate lastDailyLoginRewardDate;
+
+    @Column(name = "daily_login_streak")
+    @JsonIgnore
+    private Integer dailyLoginStreak = 0;
 
     public void deductPoints(int price) {
         if (this.points < price) {

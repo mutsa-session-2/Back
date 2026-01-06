@@ -9,9 +9,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import floorida.example.floorida.dto.MyBadgeResponse;
+import floorida.example.floorida.dto.MyBadgeSummaryResponse;
 import floorida.example.floorida.dto.OnboardingRequest;
 import floorida.example.floorida.dto.UncompletedScheduleResponse;
 import floorida.example.floorida.dto.WithdrawRequest;
@@ -110,6 +112,57 @@ public class MeController {
     @Operation(summary = "내 뱃지 목록 조회", description = "로그인한 사용자가 획득한 뱃지 목록을 반환합니다.")
     public ResponseEntity<List<MyBadgeResponse>> getMyBadges() {
         return ResponseEntity.ok(badgeService.getMyBadges());
+    }
+
+    @GetMapping("/badges/summary")
+    @Operation(
+        summary = "내 뱃지 + 연속 출석 요약 조회",
+        description = "로그인한 사용자가 획득한 뱃지 목록과, 일일 접속 보상 기준 연속 출석 일수(attendStreak)를 함께 반환합니다."
+    )
+    @ApiResponses({
+        @ApiResponse(
+            responseCode = "200",
+            description = "조회 성공",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = MyBadgeSummaryResponse.class),
+                examples = @ExampleObject(
+                    name = "요약 예시",
+                    value = """
+                        {
+                          \"attendStreak\": 3,
+                          \"asOfDate\": \"2026-01-06\",
+                          \"badges\": [
+                            {
+                              \"badgeId\": 1,
+                              \"name\": \"1일출석\",
+                              \"type\": \"ATTENDANCE\",
+                              \"description\": \"연속 1일 출석 달성\",
+                              \"imageUrl\": \"https://...\",
+                              \"earnedAt\": \"2026-01-04T12:34:56Z\"
+                            }
+                          ]
+                        }
+                        """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "인증 실패",
+            content = @Content(mediaType = "application/json")
+        )
+    })
+    public ResponseEntity<MyBadgeSummaryResponse> getMyBadgeSummary() {
+        User user = currentUserService.getCurrentUser()
+                .orElseThrow(() -> new IllegalStateException("Unauthenticated"));
+
+        int attendStreak = userProfileService.getCurrentDailyLoginStreak(user.getUserId(), LocalDate.now());
+        return ResponseEntity.ok(MyBadgeSummaryResponse.builder()
+                .attendStreak(attendStreak)
+                .asOfDate(LocalDate.now())
+                .badges(badgeService.getMyBadges())
+                .build());
     }
 
     @GetMapping("/personal-place/missed")

@@ -17,6 +17,8 @@ CREATE TABLE IF NOT EXISTS user_profiles (
     daily_study_hours VARCHAR(50),
     points INT NOT NULL DEFAULT 0,
     personal_level INT NOT NULL DEFAULT 1,
+    last_daily_login_reward_date DATE,
+    daily_login_streak INT NOT NULL DEFAULT 0,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 

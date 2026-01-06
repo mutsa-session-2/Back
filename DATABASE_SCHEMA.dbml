@@ -136,6 +136,9 @@ Table User_Profiles {
   
   points int [default: 0, not null]  // 개인 재화(포인트)
   personal_level int [default: 1, not null]  // 개인 층수 (오늘의 내 모든 일정 완료 시 +1)
+
+  last_daily_login_reward_date date  // 마지막 일일 접속 보상 지급일
+  daily_login_streak int [default: 0, not null]  // 일일 접속 보상 기준 연속 출석 일수
   
   Note: 'XP 시스템 제거 - 층수(level)는 누적이 아닌 날짜별 완료 시 증가'
 }

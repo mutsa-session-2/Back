@@ -9,9 +9,65 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger Cloudtype Deploy
-        run: |
-          curl -X POST https://api.cloudtype.io/webhooks/deploy \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${{ secrets.CLOUDTYPE_TOKEN }}" \
-            -d '{"project":"floorida", "app":"back", "stage":"main"}'
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy to Cloudtype
+        uses: cloudtype-github-actions/deploy@v1
+        with:
+          token: ${{ secrets.CLOUDTYPE_TOKEN }}
+          project: hyeonhanjo1/floorida
+          stage: main
+          yaml: |
+            name: back
+            app: java@21
+            options:
+              ports: 8080
+              git:
+                url: https://github.com/mutsa-session-2/Back.git
+                branch: main
+              env:
+                - name: DB_URL
+                  value: ${{ secrets.DB_URL }}
+                - name: DB_USERNAME
+                  value: ${{ secrets.DB_USERNAME }}
+                - name: DB_PASSWORD
+                  value: ${{ secrets.DB_PASSWORD }}
+                - name: JWT_SECRET
+                  value: ${{ secrets.JWT_SECRET }}
+                - name: OPENAI_API_KEY
+                  value: ${{ secrets.OPENAI_API_KEY }}
+                - name: GEMINI_API_KEY
+                  value: ${{ secrets.GEMINI_API_KEY }}
+                - name: AWS_S3_ACCESS_KEY
+                  value: ${{ secrets.AWS_S3_ACCESS_KEY }}
+                - name: AWS_S3_SECRET_KEY
+                  value: ${{ secrets.AWS_S3_SECRET_KEY }}
+                - name: AWS_S3_BUCKET_NAME
+                  value: ${{ secrets.AWS_S3_BUCKET_NAME }}
+                - name: AWS_S3_REGION
+                  value: ${{ secrets.AWS_S3_REGION }}
+                - name: APP_EMAIL_ENABLED
+                  value: ${{ secrets.APP_EMAIL_ENABLED }}
+                - name: APP_EMAIL_FROM
+                  value: ${{ secrets.APP_EMAIL_FROM }}
+                - name: APP_BASE_URL
+                  value: ${{ secrets.APP_BASE_URL }}
+                - name: SPRING_MAIL_HOST
+                  value: ${{ secrets.SPRING_MAIL_HOST }}
+                - name: SPRING_MAIL_PORT
+                  value: ${{ secrets.SPRING_MAIL_PORT }}
+                - name: SPRING_MAIL_USERNAME
+                  value: ${{ secrets.SPRING_MAIL_USERNAME }}
+                - name: SPRING_MAIL_PASSWORD
+                  value: ${{ secrets.SPRING_MAIL_PASSWORD }}
+                - name: APP_HEALTH_TOKEN
+                  value: ${{ secrets.APP_HEALTH_TOKEN }}
+                - name: APP_SWAGGER_BASIC_USERNAME
+                  value: ${{ secrets.APP_SWAGGER_BASIC_USERNAME }}
+                - name: APP_SWAGGER_BASIC_PASSWORD
+                  value: ${{ secrets.APP_SWAGGER_BASIC_PASSWORD }}
+                - name: APP_SWAGGER_BASIC_REALM_SUFFIX
+                  value: ${{ secrets.APP_SWAGGER_BASIC_REALM_SUFFIX }}
+                - name: APP_HEALTH_PASSWORD
+                  value: ${{ secrets.APP_HEALTH_PASSWORD }}

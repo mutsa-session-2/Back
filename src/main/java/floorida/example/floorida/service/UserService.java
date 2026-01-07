@@ -18,15 +18,18 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final CharacterService characterService;
     private final UserProfileService userProfileService;
+    private final BadgeService badgeService;
 
     public UserService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        CharacterService characterService,
-                       UserProfileService userProfileService) {
+                       UserProfileService userProfileService,
+                       BadgeService badgeService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.characterService = characterService;
         this.userProfileService = userProfileService;
+        this.badgeService = badgeService;
     }
 
     @Transactional
@@ -69,6 +72,10 @@ public class UserService {
         // 접속일 기준 하루 1회 일일 접속 보상 (+10코인)
         // 첫 로그인(가입 보너스 50코인) 날에도 함께 지급되도록 분리 정책으로 처리합니다.
         userProfileService.grantDailyLoginRewardOnLogin(user.getUserId(), LocalDate.now());
+
+        // 로그인 기반 연속 출석 streak에 따라 출석 뱃지를 지급합니다.
+        int streak = userProfileService.getCurrentDailyLoginStreak(user.getUserId(), LocalDate.now());
+        badgeService.onDailyLoginAttendance(user, streak);
 
         return user;
     }

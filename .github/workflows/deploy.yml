@@ -1,0 +1,17 @@
+name: Deploy to Cloudtype
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Cloudtype Deploy
+        run: |
+          curl -X POST https://api.cloudtype.io/webhooks/deploy \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.CLOUDTYPE_TOKEN }}" \
+            -d '{"project":"floorida", "app":"back", "stage":"main"}'

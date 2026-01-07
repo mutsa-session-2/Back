@@ -16,7 +16,7 @@ jobs:
         uses: cloudtype-github-actions/deploy@v1
         with:
           token: ${{ secrets.CLOUDTYPE_TOKEN }}
-          project: floorida/back
+          project: hyeonhanjo1/floorida
           stage: main
           yaml: |
             name: back

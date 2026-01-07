@@ -92,6 +92,9 @@ public class TeamFloorService {
     public List<TeamFloorResponse> listTeamFloors(Long requesterUserId, Long teamId) {
         teamService.getMember(teamId, requesterUserId);
 
+        Team team = teamService.getTeamOrThrow(teamId);
+        Integer teamLevel = team.getLevel();
+
         List<TeamFloor> floors = teamFloorRepository.findByTeam_IdOrderByDueDateAscCreatedAtAsc(teamId);
         if (floors.isEmpty()) return Collections.emptyList();
 
@@ -126,7 +129,8 @@ public class TeamFloorService {
                             f.isCompleted(),
                             f.getCompletedAt(),
                             assigneeUserIds,
-                            assignees
+                            assignees,
+                            teamLevel
                     );
                 })
                 .toList();
@@ -139,6 +143,9 @@ public class TeamFloorService {
     @Transactional(readOnly = true)
     public List<TeamFloorResponse> listIncompleteTeamFloors(Long requesterUserId, Long teamId) {
         teamService.getMember(teamId, requesterUserId);
+
+        Team team = teamService.getTeamOrThrow(teamId);
+        Integer teamLevel = team.getLevel();
 
         List<TeamFloor> floors = teamFloorRepository.findByTeam_IdAndCompletedFalseOrderByDueDateAscCreatedAtAsc(teamId);
         if (floors.isEmpty()) return Collections.emptyList();
@@ -172,7 +179,8 @@ public class TeamFloorService {
                             f.isCompleted(),
                             f.getCompletedAt(),
                             assigneeUserIds,
-                            assignees
+                            assignees,
+                            teamLevel
                     );
                 })
                 .toList();
@@ -183,18 +191,16 @@ public class TeamFloorService {
        4) 할 일 상세 조회 (member)
        ========================================================= */
     @Transactional(readOnly = true)
-    public TeamFloorDetailResponse getTeamFloorDetail(
-            Long requesterUserId,
-            Long teamId,
-            Long teamFloorId
-    ) {
+    public TeamFloorDetailResponse getTeamFloorDetail(Long requesterUserId, Long teamId, Long teamFloorId) {
         teamService.getMember(teamId, requesterUserId);
+
+        Team team = teamService.getTeamOrThrow(teamId);
+        Integer teamLevel = team.getLevel();
 
         TeamFloor floor = teamFloorRepository.findByIdAndTeam_Id(teamFloorId, teamId)
                 .orElseThrow(() -> new EntityNotFoundException("TeamFloor not found"));
 
-        List<TeamFloorStatus> statuses =
-                teamFloorStatusRepository.findByIdTeamFloorId(teamFloorId);
+        List<TeamFloorStatus> statuses = teamFloorStatusRepository.findByIdTeamFloorId(teamFloorId);
 
         List<Long> assigneeUserIds = statuses.stream()
                 .map(s -> s.getUser().getUserId())
@@ -215,9 +221,11 @@ public class TeamFloorService {
                 floor.isCompleted(),
                 floor.getCompletedAt(),
                 assigneeUserIds,
-                assignees
+                assignees,
+                teamLevel
         );
     }
+
 
 
     /* =========================================================

@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import floorida.example.floorida.dto.FloorResponse;
+import floorida.example.floorida.dto.FloorCompleteResponse;
 import floorida.example.floorida.dto.FloorUpdateRequest;
 import floorida.example.floorida.service.FloorService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -185,7 +186,20 @@ public class FloorController {
         @ApiResponse(
             responseCode = "200",
             description = "완료 처리 성공 (10코인 지급됨)",
-            content = @Content(mediaType = "application/json")
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    value = """
+                        {
+                          \"floorId\": 1,
+                          \"completed\": true,
+                          \"coinsAwarded\": 10,
+                          \"currentPoints\": 120,
+                          \"completedAt\": \"2026-01-07T11:09:13.623+09:00\"
+                        }
+                        """
+                )
+            )
         ),
         @ApiResponse(
             responseCode = "400",
@@ -203,8 +217,14 @@ public class FloorController {
         @PathVariable Long floorId
     ) {
         try {
-            floorService.completeFloor(floorId);
-            return ResponseEntity.ok("Floor completed! +10 coins");
+            FloorService.CompleteResult r = floorService.completeFloor(floorId);
+            return ResponseEntity.ok(new FloorCompleteResponse(
+                r.floorId(),
+                r.completed(),
+                r.coinsAwarded(),
+                r.currentPoints(),
+                r.completedAt()
+            ));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

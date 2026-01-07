@@ -240,13 +240,20 @@ public class TeamFloorController {
             description =
                     "배정자 또는 OWNER/ADMIN이 완료 처리할 수 있습니다.\n" +
                             "- 이미 완료된 경우 실패가 아니라 alreadyCompleted=true\n" +
-                            "- 완료 전환(false->true) 성공 시 팀 레벨 +1"
+                            "- 완료 전환(false->true) 성공 시 팀 레벨 +1\n" +
+                            "- 응답에 현재 팀 레벨(teamLevel)을 포함합니다."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "처리 성공",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = TeamFloorCompleteResponse.class),
-                            examples = @ExampleObject(value = "{ \"alreadyCompleted\": false, \"levelUp\": true }"))),
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "alreadyCompleted": false,
+                                      "levelUp": true,
+                                      "teamLevel": 3
+                                    }
+                                    """))),
             @ApiResponse(responseCode = "401", description = "인증 실패"),
             @ApiResponse(responseCode = "403", description = "권한 없음(배정자도 아니고 OWNER/ADMIN도 아님)"),
             @ApiResponse(responseCode = "404", description = "할 일을 찾을 수 없음")
@@ -254,7 +261,14 @@ public class TeamFloorController {
     public ResponseEntity<TeamFloorCompleteResponse> complete(@PathVariable Long teamFloorId) {
         User me = meOrThrow();
         TeamFloorService.CompleteResult r = teamFloorService.complete(me.getUserId(), teamFloorId);
-        return ResponseEntity.ok(new TeamFloorCompleteResponse(r.isAlreadyCompleted(), r.isLevelUp()));
+
+        return ResponseEntity.ok(
+                new TeamFloorCompleteResponse(
+                        r.isAlreadyCompleted(),
+                        r.isLevelUp(),
+                        r.getTeamLevel()
+                )
+        );
     }
 
     // 9) 완료 취소 토글 OFF (assignee OR admin/owner)
@@ -264,13 +278,20 @@ public class TeamFloorController {
             description =
                     "배정자 또는 OWNER/ADMIN이 완료 취소할 수 있습니다.\n" +
                             "- 이미 미완료인 경우 실패가 아니라 alreadyIncomplete=true\n" +
-                            "- 취소 전환(true->false) 성공 시 팀 레벨 -1"
+                            "- 취소 전환(true->false) 성공 시 팀 레벨 -1\n" +
+                            "- 응답에 현재 팀 레벨(teamLevel)을 포함합니다."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "처리 성공",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = TeamFloorCancelResponse.class),
-                            examples = @ExampleObject(value = "{ \"alreadyIncomplete\": false, \"levelDown\": true }"))),
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "alreadyIncomplete": false,
+                                      "levelDown": true,
+                                      "teamLevel": 2
+                                    }
+                                    """))),
             @ApiResponse(responseCode = "401", description = "인증 실패"),
             @ApiResponse(responseCode = "403", description = "권한 없음(배정자도 아니고 OWNER/ADMIN도 아님)"),
             @ApiResponse(responseCode = "404", description = "할 일을 찾을 수 없음")
@@ -278,6 +299,14 @@ public class TeamFloorController {
     public ResponseEntity<TeamFloorCancelResponse> cancel(@PathVariable Long teamFloorId) {
         User me = meOrThrow();
         TeamFloorService.CancelResult r = teamFloorService.cancel(me.getUserId(), teamFloorId);
-        return ResponseEntity.ok(new TeamFloorCancelResponse(r.isAlreadyIncomplete(), r.isLevelDown()));
+
+        return ResponseEntity.ok(
+                new TeamFloorCancelResponse(
+                        r.isAlreadyIncomplete(),
+                        r.isLevelDown(),
+                        r.getTeamLevel()
+                )
+        );
     }
+
 }

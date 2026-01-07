@@ -311,8 +311,10 @@ public class TeamFloorService {
             teamService.validateAdmin(teamId, requesterUserId);
         }
 
+        // 이미 완료된 경우
         if (floor.isCompleted()) {
-            return new CompleteResult(true, false);
+            Integer level = teamRepository.findLevelById(teamId);
+            return new CompleteResult(true, false, level);
         }
 
         Instant now = Instant.now();
@@ -322,13 +324,17 @@ public class TeamFloorService {
                     .markAssigneeCompletedIfNotCompleted(teamFloorId, requesterUserId, now);
         }
 
+        // 처음 완료 성공
         if (teamFloorRepository.markCompletedIfNotCompleted(teamFloorId, now) == 1) {
             teamRepository.incrementLevel(teamId);
-            return new CompleteResult(false, true);
+            Integer level = teamRepository.findLevelById(teamId);
+            return new CompleteResult(false, true, level);
         }
 
-        return new CompleteResult(true, false);
+        Integer level = teamRepository.findLevelById(teamId);
+        return new CompleteResult(true, false, level);
     }
+
 
     /* =========================================================
        9) 완료 취소 (배정자 OR 팀장)
@@ -346,24 +352,31 @@ public class TeamFloorService {
             teamService.validateAdmin(teamId, requesterUserId);
         }
 
+        // 이미 미완료
         if (!floor.isCompleted()) {
-            return new CancelResult(true, false);
+            Integer level = teamRepository.findLevelById(teamId);
+            return new CancelResult(true, false, level);
         }
 
         if (teamFloorRepository.cancelIfCompleted(teamFloorId) == 1) {
             teamFloorStatusRepository.resetAllAssigneesStatus(teamFloorId);
             teamRepository.decrementLevel(teamId);
-            return new CancelResult(false, true);
+
+            Integer level = teamRepository.findLevelById(teamId);
+            return new CancelResult(false, true, level);
         }
 
-        return new CancelResult(true, false);
+        Integer level = teamRepository.findLevelById(teamId);
+        return new CancelResult(true, false, level);
     }
+
 
     @Getter
     @AllArgsConstructor
     public static class CompleteResult {
         private boolean alreadyCompleted;
         private boolean levelUp;
+        private Integer teamLevel;
     }
 
     @Getter
@@ -371,5 +384,6 @@ public class TeamFloorService {
     public static class CancelResult {
         private boolean alreadyIncomplete;
         private boolean levelDown;
+        private Integer teamLevel;
     }
 }

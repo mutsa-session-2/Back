@@ -22,4 +22,7 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("update Team t set t.level = t.level - 1 where t.id = :teamId and t.level > 1")
     int decrementLevel(@Param("teamId") Long teamId);
+
+    @Query("select t.level from Team t where t.id = :teamId")
+    Integer findLevelById(Long teamId);
 }

@@ -101,4 +101,37 @@ public class BadgeService {
         UserBadge ub = new UserBadge(user, badge);
         userBadgeRepository.save(ub);
     }
+
+    /**
+     * 일일 접속 보상(로그인) 기준 연속 출석(streak)로 출석 뱃지를 지급합니다.
+     * - streak 값은 이미 계산/저장된 값을 받아 사용합니다.
+     * - 같은 뱃지는 중복 지급하지 않습니다.
+     */
+    @Transactional
+    public void onDailyLoginAttendance(User user, Integer streak) {
+        if (user == null) {
+            return;
+        }
+        if (streak == null || streak <= 0) {
+            return;
+        }
+
+        if (!ATTENDANCE_MILESTONES.contains(streak)) {
+            return;
+        }
+
+        String badgeName = streak + "일출석";
+        Badge badge = badgeRepository.findByName(badgeName)
+                .orElse(null);
+        if (badge == null) {
+            return;
+        }
+
+        if (userBadgeRepository.existsById_UserIdAndId_BadgeId(user.getUserId(), badge.getBadgeId())) {
+            return;
+        }
+
+        UserBadge ub = new UserBadge(user, badge);
+        userBadgeRepository.save(ub);
+    }
 }

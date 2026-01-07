@@ -36,7 +36,7 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/me")
-@Tag(name = "내 정보", description = "로그인한 사용자의 정보/포인트를 조회하는 API")
+@Tag(name = "내 정보", description = "로그인한 사용자의 정보/포인트를 조회하는 API입니다.")
 @SecurityRequirement(name = "bearerAuth")
 public class MeController {
 

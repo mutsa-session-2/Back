@@ -63,13 +63,6 @@ public class TeamCharacterServiceImpl implements TeamCharacterService {
     }
 
     private EquippedItemResponse toEquippedItemResponse(UserItem userItem) {
-        Item item = userItem.getItem();
-
-        return new EquippedItemResponse(
-                item.getItemId(),   // ✅ 네 Item PK
-                item.getName(),
-                item.getType(),
-                item.getImgUrl()
-        );
+        return new EquippedItemResponse(userItem.getItem());
     }
 }

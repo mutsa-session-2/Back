@@ -47,12 +47,7 @@ public class ItemServiceImpl implements ItemService {
 
         return items.stream()
                 .map(item -> new ItemResponse(
-                        item.getItemId(),
-                        item.getName(),
-                        item.getType(),
-                        item.getPrice(),
-                        item.getImgUrl(),
-                        item.getDescription(),
+                        item,
                         item.getPrice() == 0 || ownedItemIds.contains(item.getItemId())
                 ))
                 .toList();

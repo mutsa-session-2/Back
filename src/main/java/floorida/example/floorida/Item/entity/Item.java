@@ -32,18 +32,39 @@ public class Item {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    // ✅ 추가
+    @Column(name = "offset_x")
+    private Integer offsetX;
+
+    @Column(name = "offset_y")
+    private Integer offsetY;
+
+    @Column
+    private Integer width;
+
+    @Column
+    private Integer height;
+
     /* ========= 생성자 ========= */
 
     public Item(String name,
                 ItemType type,
                 int price,
                 String imgUrl,
-                String description) {
+                String description,
+                Integer offsetX,
+                Integer offsetY,
+                Integer width,
+                Integer height) {
 
         this.name = name;
         this.type = type;
         this.price = price;
         this.imgUrl = imgUrl;
         this.description = description;
+        this.offsetX = offsetX;
+        this.offsetY = offsetY;
+        this.width = width;
+        this.height = height;
     }
 }

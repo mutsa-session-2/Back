@@ -70,7 +70,11 @@ public class FloorService {
         * Floor 완료 처리 (퀘스트 체크) - 10코인 지급
      */
     @Transactional
-    public void completeFloor(Long floorId) {
+    public record CompleteResult(Long floorId, boolean completed, int coinsAwarded, int currentPoints, Instant completedAt) {
+    }
+
+    @Transactional
+    public CompleteResult completeFloor(Long floorId) {
         User user = currentUserService.getCurrentUser()
                 .orElseThrow(() -> new IllegalStateException("Unauthenticated"));
 
@@ -92,11 +96,14 @@ public class FloorService {
         status.setFloor(floor);
         status.setUser(user);
         status.setIsCompleted(true);
-        status.setCompletedAt(Instant.now());
+        Instant completedAt = Instant.now();
+        status.setCompletedAt(completedAt);
         floorStatusRepository.save(status);
 
         // 10코인 지급
         userProfileService.addPoints(user.getUserId(), 10);
+
+        int currentPoints = userProfileService.getPoints(user.getUserId());
 
         // 개인 층수 +1 (오늘 할 일 하나 완료할 때마다 한 층 올라감)
         userProfileService.incrementPersonalLevel(user.getUserId());
@@ -104,6 +111,8 @@ public class FloorService {
         // 출석 뱃지 지급 (가정: 하루 1개 이상 완료 = 출석)
         LocalDate attendanceDate = floor.getScheduledDate() != null ? floor.getScheduledDate() : LocalDate.now();
         badgeService.onAttendance(user, attendanceDate);
+
+        return new CompleteResult(floorId, true, 10, currentPoints, completedAt);
     }
 
     /**

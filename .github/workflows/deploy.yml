@@ -23,3 +23,6 @@ jobs:
             app: java@21
             options:
               ports: 8080
+              git:
+                url: https://github.com/mutsa-session-2/Back.git
+                branch: main

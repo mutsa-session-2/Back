@@ -32,7 +32,11 @@ public record TeamFloorDetailResponse(
         List<Long> assigneeUserIds,
 
         @Schema(description = "배정된 사용자 정보 목록")
-        List<AssigneeInfo> assignees
+        List<AssigneeInfo> assignees,
+
+        @Schema(description = "현재 팀 레벨(층수)", example = "3")
+        Integer teamLevel
+
 ) {
 
     @Schema(description = "배정자 정보")

@@ -52,6 +52,9 @@ public class TeamFloorResponse {
     )
     private List<AssigneeInfo> assignees;
 
+    @Schema(description = "현재 팀 레벨(엘리베이터 층수)", example = "3")
+    private Integer teamLevel;
+
     @Getter
     @AllArgsConstructor
     @Schema(description = "배정자 정보")

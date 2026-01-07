@@ -76,7 +76,8 @@ public class TeamFloorController {
             description =
                     "팀 멤버가 팀 할 일 목록을 조회합니다.\n\n" +
                             "- 배정자 없는 할 일은 assigneeUserIds == [] (미정)\n" +
-                            "- assignees 필드로 배정자 username까지 함께 제공합니다."
+                            "- assignees 필드로 배정자 username까지 함께 제공합니다.\n" +
+                            "- 각 항목에 현재 팀 레벨(teamLevel)을 포함합니다."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공",
@@ -94,7 +95,8 @@ public class TeamFloorController {
                                         "assigneeUserIds": [36],
                                         "assignees": [
                                           { "userId": 36, "username": "test1234" }
-                                        ]
+                                        ],
+                                        "teamLevel": 3
                                       }
                                     ]
                                     """))),
@@ -113,12 +115,28 @@ public class TeamFloorController {
             summary = "팀 미완료 할 일 목록 조회",
             description =
                     "팀 멤버가 미완료(completed=false) 할 일만 모아서 조회합니다.\n\n" +
-                            "- assignees 필드로 배정자 username까지 함께 제공합니다."
+                            "- assignees 필드로 배정자 username까지 함께 제공합니다.\n" +
+                            "- 각 항목에 현재 팀 레벨(teamLevel)을 포함합니다."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공",
                     content = @Content(mediaType = "application/json",
-                            array = @ArraySchema(schema = @Schema(implementation = TeamFloorResponse.class)))),
+                            array = @ArraySchema(schema = @Schema(implementation = TeamFloorResponse.class)),
+                            examples = @ExampleObject(value = """
+                                    [
+                                      {
+                                        "teamFloorId": 3,
+                                        "teamId": 7,
+                                        "title": "자료구조 복습하기",
+                                        "dueDate": "2026-01-11",
+                                        "completed": false,
+                                        "completedAt": null,
+                                        "assigneeUserIds": [],
+                                        "assignees": [],
+                                        "teamLevel": 3
+                                      }
+                                    ]
+                                    """))),
             @ApiResponse(responseCode = "401", description = "인증 실패"),
             @ApiResponse(responseCode = "403", description = "팀 멤버가 아님"),
             @ApiResponse(responseCode = "404", description = "팀을 찾을 수 없음")
@@ -134,7 +152,8 @@ public class TeamFloorController {
             summary = "팀 할 일 상세 조회",
             description =
                     "팀 멤버가 특정 할 일을 상세 조회합니다.\n\n" +
-                            "- assignees 필드로 배정자 username까지 함께 제공합니다."
+                            "- assignees 필드로 배정자 username까지 함께 제공합니다.\n" +
+                            "- 응답에 현재 팀 레벨(teamLevel)을 포함합니다."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공",
@@ -151,7 +170,8 @@ public class TeamFloorController {
                                       "assigneeUserIds": [36],
                                       "assignees": [
                                         { "userId": 36, "username": "test1234" }
-                                      ]
+                                      ],
+                                      "teamLevel": 3
                                     }
                                     """))),
             @ApiResponse(responseCode = "401", description = "인증 실패"),
@@ -308,5 +328,4 @@ public class TeamFloorController {
                 )
         );
     }
-
 }

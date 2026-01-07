@@ -86,17 +86,19 @@ public class TeamFloorService {
 
     /* =========================================================
        2) 팀 할 일 목록 조회 (member)
-       - 배정자 없는 경우 assigneeUserIds == [] (미정)
+       - 할 일이 0개여도 teamLevel 내려주기 위해 Wrapper 사용
        ========================================================= */
     @Transactional(readOnly = true)
-    public List<TeamFloorResponse> listTeamFloors(Long requesterUserId, Long teamId) {
+    public TeamFloorListResponse listTeamFloors(Long requesterUserId, Long teamId) {
         teamService.getMember(teamId, requesterUserId);
 
         Team team = teamService.getTeamOrThrow(teamId);
         Integer teamLevel = team.getLevel();
 
         List<TeamFloor> floors = teamFloorRepository.findByTeam_IdOrderByDueDateAscCreatedAtAsc(teamId);
-        if (floors.isEmpty()) return Collections.emptyList();
+        if (floors.isEmpty()) {
+            return new TeamFloorListResponse(teamLevel, List.of());
+        }
 
         List<Long> floorIds = floors.stream().map(TeamFloor::getId).toList();
 
@@ -106,7 +108,7 @@ public class TeamFloorService {
         Map<Long, List<TeamFloorStatus>> statusByFloorId =
                 statuses.stream().collect(Collectors.groupingBy(s -> s.getTeamFloor().getId()));
 
-        return floors.stream()
+        List<TeamFloorResponse> items = floors.stream()
                 .map(f -> {
                     List<TeamFloorStatus> ss = statusByFloorId.getOrDefault(f.getId(), Collections.emptyList());
 
@@ -134,21 +136,25 @@ public class TeamFloorService {
                     );
                 })
                 .toList();
+
+        return new TeamFloorListResponse(teamLevel, items);
     }
 
     /* =========================================================
        3) 팀 "미완료" 할 일 목록 조회 (member)
-       - completed=false만 모아서 보기
+       - 할 일이 0개여도 teamLevel 내려주기 위해 Wrapper 사용
        ========================================================= */
     @Transactional(readOnly = true)
-    public List<TeamFloorResponse> listIncompleteTeamFloors(Long requesterUserId, Long teamId) {
+    public TeamFloorListResponse listIncompleteTeamFloors(Long requesterUserId, Long teamId) {
         teamService.getMember(teamId, requesterUserId);
 
         Team team = teamService.getTeamOrThrow(teamId);
         Integer teamLevel = team.getLevel();
 
         List<TeamFloor> floors = teamFloorRepository.findByTeam_IdAndCompletedFalseOrderByDueDateAscCreatedAtAsc(teamId);
-        if (floors.isEmpty()) return Collections.emptyList();
+        if (floors.isEmpty()) {
+            return new TeamFloorListResponse(teamLevel, List.of());
+        }
 
         List<Long> floorIds = floors.stream().map(TeamFloor::getId).toList();
         List<TeamFloorStatus> statuses = teamFloorStatusRepository.findByIdTeamFloorIdIn(floorIds);
@@ -156,7 +162,7 @@ public class TeamFloorService {
         Map<Long, List<TeamFloorStatus>> statusByFloorId =
                 statuses.stream().collect(Collectors.groupingBy(s -> s.getTeamFloor().getId()));
 
-        return floors.stream()
+        List<TeamFloorResponse> items = floors.stream()
                 .map(f -> {
                     List<TeamFloorStatus> ss = statusByFloorId.getOrDefault(f.getId(), Collections.emptyList());
 
@@ -184,8 +190,9 @@ public class TeamFloorService {
                     );
                 })
                 .toList();
-    }
 
+        return new TeamFloorListResponse(teamLevel, items);
+    }
 
     /* =========================================================
        4) 할 일 상세 조회 (member)
@@ -194,13 +201,15 @@ public class TeamFloorService {
     public TeamFloorDetailResponse getTeamFloorDetail(Long requesterUserId, Long teamId, Long teamFloorId) {
         teamService.getMember(teamId, requesterUserId);
 
+        // teamLevel을 detail에 포함시키려면 DTO(TeamFloorDetailResponse)에 Integer teamLevel 필드가 있어야 함
         Team team = teamService.getTeamOrThrow(teamId);
         Integer teamLevel = team.getLevel();
 
         TeamFloor floor = teamFloorRepository.findByIdAndTeam_Id(teamFloorId, teamId)
                 .orElseThrow(() -> new EntityNotFoundException("TeamFloor not found"));
 
-        List<TeamFloorStatus> statuses = teamFloorStatusRepository.findByIdTeamFloorId(teamFloorId);
+        List<TeamFloorStatus> statuses =
+                teamFloorStatusRepository.findByIdTeamFloorId(teamFloorId);
 
         List<Long> assigneeUserIds = statuses.stream()
                 .map(s -> s.getUser().getUserId())
@@ -213,6 +222,7 @@ public class TeamFloorService {
                 ))
                 .toList();
 
+        // ✅ 여기서 teamLevel을 넘기려면 TeamFloorDetailResponse record에 teamLevel이 추가되어 있어야 합니다.
         return new TeamFloorDetailResponse(
                 floor.getId(),
                 floor.getTeam().getId(),
@@ -226,12 +236,8 @@ public class TeamFloorService {
         );
     }
 
-
-
     /* =========================================================
        5) 할 일 수정 (owner)
-       - 제목/마감일 수정
-       - dueDate는 팀 프로젝트 기간 내
        ========================================================= */
     public void updateTeamFloor(Long requesterUserId, Long teamFloorId, TeamFloorUpdateRequest req) {
         TeamFloor floor = teamFloorRepository.findById(teamFloorId)
@@ -255,7 +261,6 @@ public class TeamFloorService {
 
     /* =========================================================
        6) 할 일 삭제 (owner)
-       - 배정 매핑 먼저 삭제 후 할 일 삭제
        ========================================================= */
     public void deleteTeamFloor(Long requesterUserId, Long teamFloorId) {
         TeamFloor floor = teamFloorRepository.findById(teamFloorId)
@@ -270,7 +275,6 @@ public class TeamFloorService {
 
     /* =========================================================
        7) 배정자 변경 (owner)
-       - 빈 배열 허용: 미정으로 만들기 가능
        ========================================================= */
     public void updateAssignees(Long requesterUserId, Long teamFloorId, TeamFloorAssigneesUpdateRequest req) {
         TeamFloor floor = teamFloorRepository.findById(teamFloorId)
@@ -305,6 +309,7 @@ public class TeamFloorService {
 
     /* =========================================================
        8) 완료 처리 (배정자 OR 팀장)
+       - 응답에 현재 teamLevel 포함
        ========================================================= */
     public CompleteResult complete(Long requesterUserId, Long teamFloorId) {
         TeamFloor floor = teamFloorRepository.findById(teamFloorId)
@@ -332,7 +337,6 @@ public class TeamFloorService {
                     .markAssigneeCompletedIfNotCompleted(teamFloorId, requesterUserId, now);
         }
 
-        // 처음 완료 성공
         if (teamFloorRepository.markCompletedIfNotCompleted(teamFloorId, now) == 1) {
             teamRepository.incrementLevel(teamId);
             Integer level = teamRepository.findLevelById(teamId);
@@ -343,9 +347,9 @@ public class TeamFloorService {
         return new CompleteResult(true, false, level);
     }
 
-
     /* =========================================================
        9) 완료 취소 (배정자 OR 팀장)
+       - 응답에 현재 teamLevel 포함
        ========================================================= */
     public CancelResult cancel(Long requesterUserId, Long teamFloorId) {
         TeamFloor floor = teamFloorRepository.findById(teamFloorId)
@@ -377,7 +381,6 @@ public class TeamFloorService {
         Integer level = teamRepository.findLevelById(teamId);
         return new CancelResult(true, false, level);
     }
-
 
     @Getter
     @AllArgsConstructor

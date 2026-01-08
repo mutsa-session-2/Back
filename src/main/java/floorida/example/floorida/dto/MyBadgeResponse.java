@@ -14,4 +14,5 @@ public class MyBadgeResponse {
     private String description;
     private String imageUrl;
     private Instant earnedAt;
+    private boolean equipped;
 }

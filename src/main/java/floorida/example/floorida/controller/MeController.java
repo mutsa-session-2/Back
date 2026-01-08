@@ -4,6 +4,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -112,6 +113,73 @@ public class MeController {
     @Operation(summary = "내 뱃지 목록 조회", description = "로그인한 사용자가 획득한 뱃지 목록을 반환합니다.")
     public ResponseEntity<List<MyBadgeResponse>> getMyBadges() {
         return ResponseEntity.ok(badgeService.getMyBadges());
+    }
+
+    @GetMapping("/badges/equipped")
+    @Operation(summary = "현재 장착된 뱃지 조회", description = "로그인한 사용자가 현재 장착 중인 뱃지 목록을 반환합니다.")
+    @ApiResponses({
+        @ApiResponse(
+            responseCode = "200",
+            description = "조회 성공",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = MyBadgeResponse.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "인증 실패",
+            content = @Content(mediaType = "application/json")
+        )
+    })
+    public ResponseEntity<List<MyBadgeResponse>> getMyEquippedBadges() {
+        return ResponseEntity.ok(badgeService.getMyEquippedBadges());
+    }
+
+    @PostMapping("/badges/{badgeId}/equip")
+    @Operation(summary = "뱃지 장착", description = "로그인한 사용자가 보유한 뱃지를 장착합니다.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "204", description = "장착 성공"),
+        @ApiResponse(
+            responseCode = "401",
+            description = "인증 실패",
+            content = @Content(mediaType = "application/json")
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "보유하지 않은 뱃지 또는 존재하지 않는 뱃지",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(value = "{\"message\":\"badge not found\"}")
+            )
+        )
+    })
+    public ResponseEntity<Void> equipBadge(@PathVariable Long badgeId) {
+        badgeService.equipMyBadge(badgeId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/badges/{badgeId}/unequip")
+    @Operation(summary = "뱃지 해제", description = "로그인한 사용자가 장착 중인 뱃지를 해제합니다.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "204", description = "해제 성공"),
+        @ApiResponse(
+            responseCode = "401",
+            description = "인증 실패",
+            content = @Content(mediaType = "application/json")
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "보유하지 않은 뱃지 또는 존재하지 않는 뱃지",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(value = "{\"message\":\"badge not found\"}")
+            )
+        )
+    })
+    public ResponseEntity<Void> unequipBadge(@PathVariable Long badgeId) {
+        badgeService.unequipMyBadge(badgeId);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/badges/summary")

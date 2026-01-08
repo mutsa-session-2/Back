@@ -40,8 +40,21 @@ public class SchemaMigrationRunner implements CommandLineRunner {
                     stmt.execute("ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS daily_login_streak INT");
                     stmt.execute("ALTER TABLE user_profiles ALTER COLUMN daily_login_streak SET DEFAULT 0");
                     stmt.execute("UPDATE user_profiles SET daily_login_streak = 0 WHERE daily_login_streak IS NULL");
+
+                    // Badge equip/unequip support
+                    // 1) Add column as nullable first (avoid NOT NULL add failures on existing rows)
+                    stmt.execute("ALTER TABLE user_badges ADD COLUMN IF NOT EXISTS equipped BOOLEAN");
+                    // 2) Normalize values, then enforce default / not null
+                    stmt.execute("ALTER TABLE user_badges ALTER COLUMN equipped SET DEFAULT false");
+                    stmt.execute("UPDATE user_badges SET equipped = false WHERE equipped IS NULL");
+                    stmt.execute("ALTER TABLE user_badges ALTER COLUMN equipped SET NOT NULL");
+
+                    // 3) Postgres-only: enforce 'at most one equipped badge per user'
+                    if (product.toLowerCase().contains("postgres")) {
+                        stmt.execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_user_badges_one_equipped_per_user ON user_badges (user_id) WHERE equipped = true");
+                    }
                 }
-                log.info("SchemaMigrationRunner: ensured user_profiles columns for login streak");
+                log.info("SchemaMigrationRunner: ensured user_profiles + user_badges(equipped) schema");
             } else {
                 log.info("SchemaMigrationRunner: skipped (db={})", product);
             }

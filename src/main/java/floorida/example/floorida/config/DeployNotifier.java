@@ -2,6 +2,7 @@ package floorida.example.floorida.config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Profile;
@@ -25,9 +26,11 @@ public class DeployNotifier implements ApplicationListener<ApplicationReadyEvent
 
     private static final Logger log = LoggerFactory.getLogger(DeployNotifier.class);
 
+    @Value("${DISCORD_WEBHOOK_URL:}")
+    private String webhookUrl;
+
     @Override
     public void onApplicationEvent(ApplicationReadyEvent event) {
-        String webhookUrl = System.getenv("DISCORD_WEBHOOK_URL");
         
         if (webhookUrl == null || webhookUrl.isBlank()) {
             log.warn("DISCORD_WEBHOOK_URL 환경변수가 설정되지 않아 배포 알림을 전송하지 않습니다.");

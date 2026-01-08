@@ -69,6 +69,10 @@ jobs:
                   value: ${{ secrets.APP_SWAGGER_BASIC_PASSWORD }}
                 - name: APP_SWAGGER_BASIC_REALM_SUFFIX
                   value: ${{ secrets.APP_SWAGGER_BASIC_REALM_SUFFIX }}
+                - name: SPRINGDOC_SWAGGER_UI_ENABLED
+                  value: "true"
+                - name: SPRINGDOC_API_DOCS_ENABLED
+                  value: "true"
                 - name: APP_HEALTH_PASSWORD
                   value: ${{ secrets.APP_HEALTH_PASSWORD }}
                 - name: DISCORD_WEBHOOK_URL

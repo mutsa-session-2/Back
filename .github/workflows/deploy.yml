@@ -71,3 +71,7 @@ jobs:
                   value: ${{ secrets.APP_SWAGGER_BASIC_REALM_SUFFIX }}
                 - name: APP_HEALTH_PASSWORD
                   value: ${{ secrets.APP_HEALTH_PASSWORD }}
+                - name: DISCORD_WEBHOOK_URL
+                  value: ${{ secrets.DISCORD_WEBHOOK_URL }}
+                - name: SPRING_PROFILES_ACTIVE
+                  value: prod

@@ -18,7 +18,7 @@ import java.util.Map;
 
 /**
  * 운영 환경(prod)에서만 배포 완료 알림을 Discord로 전송합니다.
- * 로컬 환경에서는 이 컴포넌트가 활성화되지 않습니다.
+ * 로컬 환경에서는 이 컴포넌트가 활성화되지 않습니다. 왜 안 되냐
  */
 @Component
 @Profile("prod")

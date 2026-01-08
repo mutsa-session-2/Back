@@ -4,6 +4,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -13,9 +14,12 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDate;
 import java.util.List;
 
+import floorida.example.floorida.dto.ApiErrorResponse;
 import floorida.example.floorida.dto.MyBadgeResponse;
 import floorida.example.floorida.dto.MyBadgeSummaryResponse;
 import floorida.example.floorida.dto.OnboardingRequest;
+import floorida.example.floorida.dto.UpdateUsernameRequest;
+import floorida.example.floorida.dto.UpdateUsernameResponse;
 import floorida.example.floorida.dto.UncompletedScheduleResponse;
 import floorida.example.floorida.dto.WithdrawRequest;
 import floorida.example.floorida.entity.User;
@@ -24,6 +28,7 @@ import floorida.example.floorida.service.AccountService;
 import floorida.example.floorida.service.BadgeService;
 import floorida.example.floorida.service.CurrentUserService;
 import floorida.example.floorida.service.FloorStatusService;
+import floorida.example.floorida.service.UserService;
 import floorida.example.floorida.service.UserProfileService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -46,19 +51,22 @@ public class MeController {
     private final AccountService accountService;
     private final BadgeService badgeService;
     private final FloorStatusService floorStatusService;
+    private final UserService userService;
 
     public MeController(
             CurrentUserService currentUserService,
             UserProfileService userProfileService,
             AccountService accountService,
             BadgeService badgeService,
-            FloorStatusService floorStatusService
+            FloorStatusService floorStatusService,
+            UserService userService
     ) {
         this.currentUserService = currentUserService;
         this.userProfileService = userProfileService;
         this.accountService = accountService;
         this.badgeService = badgeService;
         this.floorStatusService = floorStatusService;
+        this.userService = userService;
     }
 
     @GetMapping
@@ -113,6 +121,64 @@ public class MeController {
     @Operation(summary = "내 뱃지 목록 조회", description = "로그인한 사용자가 획득한 뱃지 목록을 반환합니다.")
     public ResponseEntity<List<MyBadgeResponse>> getMyBadges() {
         return ResponseEntity.ok(badgeService.getMyBadges());
+    }
+
+    @PatchMapping("/username")
+    @Operation(
+        summary = "내 닉네임(username) 변경",
+        description = "로그인한 사용자의 username(닉네임)을 변경합니다. username은 유니크해야 합니다."
+    )
+    @ApiResponses({
+        @ApiResponse(
+            responseCode = "200",
+            description = "변경 성공",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = UpdateUsernameResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "요청 오류(중복 username 등)",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "인증 실패",
+            content = @Content(mediaType = "application/json")
+        )
+    })
+    public ResponseEntity<?> updateMyUsername(@Valid @RequestBody UpdateUsernameRequest request) {
+        User user = currentUserService.getCurrentUser()
+                .orElseThrow(() -> new IllegalStateException("Unauthenticated"));
+
+        try {
+            User updated = userService.updateUsername(user.getUserId(), request.getUsername());
+            return ResponseEntity.ok(new UpdateUsernameResponse(updated.getUsername()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(new ApiErrorResponse("BAD_REQUEST", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/username")
+    @Operation(
+        summary = "내 닉네임(username) 조회",
+        description = "로그인한 사용자의 username(닉네임)을 조회합니다."
+    )
+    @ApiResponses({
+        @ApiResponse(
+            responseCode = "200",
+            description = "조회 성공",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = UpdateUsernameResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "인증 실패",
+            content = @Content(mediaType = "application/json")
+        )
+    })
+    public ResponseEntity<UpdateUsernameResponse> getMyUsername() {
+        User user = currentUserService.getCurrentUser()
+                .orElseThrow(() -> new IllegalStateException("Unauthenticated"));
+
+        return ResponseEntity.ok(new UpdateUsernameResponse(user.getUsername()));
     }
 
     @GetMapping("/badges/equipped")

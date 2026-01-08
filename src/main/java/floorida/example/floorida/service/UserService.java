@@ -79,4 +79,26 @@ public class UserService {
 
         return user;
     }
+
+    @Transactional
+    public User updateUsername(Long userId, String newUsername) {
+        if (newUsername == null || newUsername.isBlank()) {
+            throw new IllegalArgumentException("Username is required");
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        String trimmed = newUsername.trim();
+        if (trimmed.equals(user.getUsername())) {
+            return user;
+        }
+
+        if (userRepository.existsByUsername(trimmed)) {
+            throw new IllegalArgumentException("Username already in use");
+        }
+
+        user.setUsername(trimmed);
+        return userRepository.save(user);
+    }
 }

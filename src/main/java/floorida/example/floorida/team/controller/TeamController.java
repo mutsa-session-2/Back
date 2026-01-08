@@ -347,7 +347,8 @@ public class TeamController {
             description =
                     "팀의 기본 정보를 조회합니다.\n\n" +
                             "반환:\n" +
-                            "- 팀 정보 + 현재 사용자의 myRole을 함께 반환합니다.\n\n" +
+                            "- 팀 정보 + 현재 사용자의 myRole을 함께 반환합니다.\n" +
+                            "- 팀 초대용 joinCode도 함께 반환됩니다.\n\n" +
                             "접근 조건:\n" +
                             "- 팀 멤버만 조회 가능(비멤버 403)\n\n" +
                             "권한:\n" +
@@ -368,7 +369,8 @@ public class TeamController {
                                             "  \"startDate\": \"2026-01-01\",\n" +
                                             "  \"endDate\": \"2026-02-01\",\n" +
                                             "  \"createdAt\": \"2026-01-01T10:00:00Z\",\n" +
-                                            "  \"myRole\": \"OWNER\"\n" +
+                                            "  \"myRole\": \"owner\",\n" +
+                                            "  \"joinCode\": \"ABCD1234\"\n" +
                                             "}"
                             )
                     )
@@ -426,9 +428,11 @@ public class TeamController {
                 team.getStartDate(),
                 team.getEndDate(),
                 team.getCreatedAt(),
-                member.getRole()
+                member.getRole(),
+                team.getJoinCode()
         ));
     }
+
 
     // 6) 팀 삭제 (owner만 + 비밀번호 재확인)
     @DeleteMapping("/{teamId}")

@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import floorida.example.floorida.dto.FloorCreateRequest;
 import floorida.example.floorida.dto.FloorResponse;
 import floorida.example.floorida.dto.FloorUpdateRequest;
 import floorida.example.floorida.entity.FloorPlan;
@@ -180,7 +181,40 @@ public class FloorService {
     }
 
     /**
-     * Floor 제목 수정
+     * Floor 생성 (세부 일정 추가)
+     * - 같은 날짜에 여러 개 생성 가능 (중복 체크 X)
+     * - 일정(Schedule) 기간 내에 포함되어야 함
+     */
+    @Transactional
+    public FloorResponse createFloor(FloorCreateRequest req) {
+        User user = currentUserService.getCurrentUser()
+                .orElseThrow(() -> new IllegalStateException("Unauthenticated"));
+        
+        Schedule schedule = scheduleRepository.findByScheduleIdAndCreatorUserId(req.getScheduleId(), user.getUserId())
+                .orElseThrow(() -> new IllegalArgumentException("Schedule not found"));
+        
+        // 날짜 유효성 체크 (일정 기간 내인지)
+        if (schedule.getStartDate() != null && schedule.getEndDate() != null) {
+            if (req.getScheduledDate().isBefore(schedule.getStartDate()) || req.getScheduledDate().isAfter(schedule.getEndDate())) {
+                throw new IllegalArgumentException("scheduledDate must be within schedule date range");
+            }
+        }
+        
+        FloorPlan floor = new FloorPlan();
+        floor.setCreatorUserId(user.getUserId());
+        floor.setSchedule(schedule);
+        floor.setTitle(req.getTitle());
+        floor.setScheduledDate(req.getScheduledDate());
+        
+        // 생성일/수정일 등 필요한 경우 설정 (Entity 리스너가 없다면)
+        // floor.setCreatedAt(Instant.now()); 
+        
+        FloorPlan saved = floorPlanRepository.save(floor);
+        return toResponse(saved);
+    }
+
+    /**
+     * Floor 제목/날짜 수정
      */
     @Transactional
     public FloorResponse updateFloor(Long floorId, FloorUpdateRequest req) {
@@ -206,16 +240,9 @@ public class FloorService {
                 }
             }
 
-            Long scheduleId = schedule != null ? schedule.getScheduleId() : null;
-            if (scheduleId != null) {
-                List<FloorPlan> sameDateFloors = floorPlanRepository
-                        .findBySchedule_ScheduleIdAndScheduledDate(scheduleId, req.getScheduledDate());
-                boolean hasOther = sameDateFloors.stream()
-                        .anyMatch(f -> f.getFloorId() != null && !f.getFloorId().equals(floorId));
-                if (hasOther) {
-                    throw new IllegalArgumentException("Another floor already exists for the given scheduledDate");
-                }
-            }
+            // 중복 체크 로직 제거됨 (하루에 여러 개 허용)
+            // Long scheduleId = ... (삭제)
+            // if (scheduleId != null) ... (삭제)
 
             floor.setScheduledDate(req.getScheduledDate());
         }

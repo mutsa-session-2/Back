@@ -206,6 +206,16 @@ public class UserProfileService {
                 .orElseThrow(() -> new IllegalStateException("User profile not found"));
         profile.setPersonalLevel(profile.getPersonalLevel() + 1);
     }
+
+    /** 테스트용: 개인 층수 + N (프론트엔드 테스트용) */
+    @Transactional
+    public int addPersonalLevels(Long userId, int levels) {
+        UserProfile profile = userProfileRepository.findById(userId)
+                .orElseThrow(() -> new IllegalStateException("User profile not found"));
+        int newLevel = profile.getPersonalLevel() + levels;
+        profile.setPersonalLevel(newLevel);
+        return newLevel;
+    }
 }
 
 

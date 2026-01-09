@@ -54,7 +54,9 @@ public class UserService {
         return savedUser;
     }
 
-    public User authenticateOrThrow(LoginRequest req) {
+    public record LoginResult(User user, boolean dailyRewardGiven, boolean firstLoginBonusGiven) {}
+
+    public LoginResult authenticateOrThrow(LoginRequest req) {
         User user = userRepository.findByEmail(req.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
         if (!passwordEncoder.matches(req.getPassword(), user.getPasswordHash())) {
@@ -71,13 +73,13 @@ public class UserService {
 
         // 접속일 기준 하루 1회 일일 접속 보상 (+10코인)
         // 첫 로그인(가입 보너스 50코인) 날에도 함께 지급되도록 분리 정책으로 처리합니다.
-        userProfileService.grantDailyLoginRewardOnLogin(user.getUserId(), LocalDate.now());
+        boolean dailyRewardGiven = userProfileService.grantDailyLoginRewardOnLogin(user.getUserId(), LocalDate.now());
 
         // 로그인 기반 연속 출석 streak에 따라 출석 뱃지를 지급합니다.
         int streak = userProfileService.getCurrentDailyLoginStreak(user.getUserId(), LocalDate.now());
         badgeService.onDailyLoginAttendance(user, streak);
 
-        return user;
+        return new LoginResult(user, dailyRewardGiven, createdProfile);
     }
 
     @Transactional

@@ -100,23 +100,29 @@ public class FloorService {
         status.setCompletedAt(completedAt);
         floorStatusRepository.save(status);
 
-        // 10코인 지급
-        userProfileService.addPoints(user.getUserId(), 10);
+        // 코인 지급 (지난 날짜가 아닐 때만 10코인)
+        LocalDate today = LocalDate.now();
+        boolean isOverdue = floor.getScheduledDate() != null && floor.getScheduledDate().isBefore(today);
+        int coinsToAward = isOverdue ? 0 : 10;
+        
+        if (coinsToAward > 0) {
+            userProfileService.addPoints(user.getUserId(), coinsToAward);
+        }
 
         int currentPoints = userProfileService.getPoints(user.getUserId());
 
-        // 개인 층수 +1 (오늘 할 일 하나 완료할 때마다 한 층 올라감)
+        // 개인 층수 +1 (지각이어도 층수는 올라감)
         userProfileService.incrementPersonalLevel(user.getUserId());
 
-        // 출석 뱃지 지급 (가정: 하루 1개 이상 완료 = 출석)
-        LocalDate attendanceDate = floor.getScheduledDate() != null ? floor.getScheduledDate() : LocalDate.now();
+        // 출석 뱃지 지급
+        LocalDate attendanceDate = floor.getScheduledDate() != null ? floor.getScheduledDate() : today;
         badgeService.onAttendance(user, attendanceDate);
 
-        return new CompleteResult(floorId, true, 10, currentPoints, completedAt);
+        return new CompleteResult(floorId, true, coinsToAward, currentPoints, completedAt);
     }
 
     /**
-     * Floor 완료 취소 처리 (잘못 눌렀을 때 되돌리기) - 10코인 차감, 층수 -1
+     * Floor 완료 취소 처리 (잘못 눌렀을 때 되돌리기)
      */
     public record UncompleteResult(Long floorId, boolean completed, int coinsDeducted, int currentPoints) {
     }
@@ -138,14 +144,31 @@ public class FloorService {
         FloorStatus status = floorStatusRepository.findByFloor_FloorIdAndUser_UserId(floorId, user.getUserId())
                 .orElseThrow(() -> new IllegalArgumentException("Floor is not completed"));
 
+        // 코인 차감 판단
+        // - 완료 당시(completedAt) 기준으로 지각이었는지 확인해야 함
+        int coinsToDeduct = 0;
+        if (floor.getScheduledDate() != null && status.getCompletedAt() != null) {
+            LocalDate completedDate = status.getCompletedAt().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+            // 완료한 날짜가 예정일보다 뒤라면 지각처리 되었었음 (코인 0)
+            boolean wasOverdue = completedDate.isAfter(floor.getScheduledDate());
+            coinsToDeduct = wasOverdue ? 0 : 10;
+        } else {
+            // 날짜 정보 없으면 기본 10으로 간주
+            coinsToDeduct = 10;
+        }
+        
         // FloorStatus 삭제 (완료 취소)
         floorStatusRepository.delete(status);
 
-        // 10코인 차감 (가지고 있는 만큼만)
+        // 코인 차감 (가지고 있는 만큼만)
         int currentPoints = userProfileService.getPoints(user.getUserId());
-        int deductAmount = Math.min(currentPoints, 10);
-        if (deductAmount > 0) {
-            userProfileService.deductPoints(user.getUserId(), deductAmount);
+        int realDeduction = 0;
+        
+        if (coinsToDeduct > 0) {
+            realDeduction = Math.min(currentPoints, coinsToDeduct);
+            if (realDeduction > 0) {
+                userProfileService.deductPoints(user.getUserId(), realDeduction);
+            }
         }
 
         int newPoints = userProfileService.getPoints(user.getUserId());
@@ -153,7 +176,7 @@ public class FloorService {
         // 개인 층수 -1 (최소 1층 유지)
         userProfileService.decrementPersonalLevel(user.getUserId());
 
-        return new UncompleteResult(floorId, false, deductAmount, newPoints);
+        return new UncompleteResult(floorId, false, realDeduction, newPoints);
     }
 
     /**

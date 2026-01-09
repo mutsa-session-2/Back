@@ -233,6 +233,42 @@ public class FloorController {
         }
     }
 
+    @PostMapping
+    @Operation(
+        summary = "Floor 생성 (세부 일정 추가)",
+        description = """
+            특정 일정(Schedule)에 속하는 새로운 Floor(할 일)를 추가합니다. (하루에 여러 개 생성 가능)
+
+            - **사용 사례:**
+              - 캘린더에서 빈 영역이나 기존 할 일 아래에 새로운 할 일 추가
+              - 하루에 2개 이상의 Floor를 수행해야 할 때 사용
+            
+            - **제약:**
+              - 지정한 날짜(`scheduledDate`)는 해당 일정의 기간(`startDate` ~ `endDate`) 내에 있어야 합니다.
+            
+            - **권한:**
+              - JWT 토큰 필수
+              - 본인이 생성한 일정에만 추가 가능
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(
+            responseCode = "201",
+            description = "생성 성공",
+            content = @Content(schema = @Schema(implementation = FloorResponse.class))
+        ),
+        @ApiResponse(responseCode = "400", description = "잘못된 요청 (날짜 범위 오류 등)"),
+        @ApiResponse(responseCode = "401", description = "인증 실패")
+    })
+    public ResponseEntity<?> createFloor(@Valid @RequestBody floorida.example.floorida.dto.FloorCreateRequest req) {
+        try {
+            FloorResponse res = floorService.createFloor(req);
+            return ResponseEntity.status(201).body(res);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("message", e.getMessage()));
+        }
+    }
+
     @PostMapping("/{floorId}/uncomplete")
     @Operation(
         summary = "Floor 완료 취소 (되돌리기)",

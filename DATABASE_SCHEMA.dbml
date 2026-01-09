@@ -95,6 +95,10 @@ Table Badges {
   type varchar(50) [default: 'INDIVIDUAL', not null]  // 'INDIVIDUAL' or 'TEAM'
   description text
   image_url varchar(255)
+  offset_x int
+  offset_y int
+  width int
+  height int
 }
 
 // 9. User_Badges Table (개인 배지)

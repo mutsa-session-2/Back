@@ -169,12 +169,15 @@ public class FloorController {
 
     @PostMapping("/{floorId}/complete")
     @Operation(
-                summary = "Floor 완료 체크 (10코인 지급)",
+                summary = "Floor 완료 체크 (코인 지급)",
         description = """
-                        지정한 Floor를 완료 처리하고, 해당 사용자에게 **10코인**을 지급합니다.
+                        지정한 Floor를 완료 처리하고 보상(코인)을 지급합니다.
 
                         - 코인 정책
-                            - 퀘스트(층, Floor) 하나를 체크(완료)할 때마다 **10코인**
+                          - **오늘 혹은 미래의 일정** 완료 시: **10코인** 지급
+                          - **지난 날짜(지각)** 일정 완료 시: **0코인** (지급 없음)
+                        - 층수 정책
+                          - 날짜 상관없이 **개인 층수 +1**
             - 중복 보호
               - 이미 완료된 Floor를 다시 완료하려 하면 400 에러가 발생합니다.
             - 권한
@@ -185,7 +188,7 @@ public class FloorController {
     @ApiResponses({
         @ApiResponse(
             responseCode = "200",
-            description = "완료 처리 성공 (10코인 지급됨)",
+            description = "완료 처리 성공",
             content = @Content(
                 mediaType = "application/json",
                 examples = @ExampleObject(
@@ -232,12 +235,13 @@ public class FloorController {
 
     @PostMapping("/{floorId}/uncomplete")
     @Operation(
-        summary = "Floor 완료 취소 (10코인 차감)",
+        summary = "Floor 완료 취소 (되돌리기)",
         description = """
             완료된 Floor를 취소 처리합니다. (잘못 눌렀을 때 되돌리기)
 
-            - 코인 정책
-              - 완료 취소 시 **10코인 차감** (코인이 10개 미만이면 있는 만큼만 차감)
+            - 코인 정책 (회수)
+              - 정상 완료했던 건 취소 시: **10코인 차감**
+              - 지난 날짜(지각) 완료 건 취소 시: **0코인 차감**
             - 층수 정책
               - 완료 취소 시 **개인 층수 -1** (최소 1층 유지)
             - 에러

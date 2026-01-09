@@ -139,9 +139,16 @@ public class AuthController {
         content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
         try {
-            User user = userService.authenticateOrThrow(request);
+            UserService.LoginResult result = userService.authenticateOrThrow(request);
+            User user = result.user();
             String token = jwtService.generateToken(user.getEmail());
-            return ResponseEntity.ok(new AuthResponse(token, user.getUserId(), user.getEmail()));
+            return ResponseEntity.ok(new AuthResponse(
+                token, 
+                user.getUserId(), 
+                user.getEmail(), 
+                result.dailyRewardGiven(), 
+                result.firstLoginBonusGiven()
+            ));
         } catch (IllegalArgumentException e) {
             if ("Email not verified".equals(e.getMessage())) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)

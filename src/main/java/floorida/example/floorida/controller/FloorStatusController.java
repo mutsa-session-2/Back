@@ -3,6 +3,7 @@ package floorida.example.floorida.controller;
 import floorida.example.floorida.dto.DailyCompletionResponse;
 import floorida.example.floorida.dto.FloorStatusResponse;
 import floorida.example.floorida.dto.MonthlyScheduleResponse;
+import floorida.example.floorida.dto.WeeklyCompletionRateResponse;
 import floorida.example.floorida.service.FloorStatusService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -158,6 +159,65 @@ public class FloorStatusController {
         
         return ResponseEntity.ok(floorStatusService.getCalendarData(start, end));
     }
+
+    @GetMapping("/calendar/weekly-rates")
+    @Operation(
+        summary = "주간 완료율만 조회 (경량 버전)",
+        description = """
+            지정한 기간 내 날짜별 완료율만 조회합니다. (floors 배열 제외)
+            
+            **응답 정보:**
+            - 날짜별 전체/완료 Floor 개수
+            - 완료율 (0~100%)
+            - floors 상세 정보 미포함 (경량화)
+            
+            **사용 예시:**
+            - 주간 캘린더에서 완료율만 필요할 때
+            - `start=2026-01-04&end=2026-01-10`
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(
+            responseCode = "200",
+            description = "조회 성공",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    value = """
+                        [
+                          {
+                            "date": "2026-01-06",
+                            "totalFloors": 1,
+                            "completedFloors": 0,
+                            "completionRate": 0
+                          },
+                          {
+                            "date": "2026-01-07",
+                            "totalFloors": 2,
+                            "completedFloors": 1,
+                            "completionRate": 50
+                          }
+                        ]
+                        """
+                )
+            )
+        ),
+        @ApiResponse(responseCode = "400", description = "잘못된 날짜 범위"),
+        @ApiResponse(responseCode = "401", description = "인증 실패")
+    })
+    public ResponseEntity<List<WeeklyCompletionRateResponse>> getWeeklyCompletionRates(
+            @Parameter(description = "시작 날짜 (YYYY-MM-DD)", required = true, example = "2026-01-04")
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
+            @Parameter(description = "종료 날짜 (YYYY-MM-DD)", required = true, example = "2026-01-10")
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
+        
+        if (end.isBefore(start)) {
+            throw new IllegalArgumentException("종료 날짜는 시작 날짜 이후여야 합니다");
+        }
+        
+        return ResponseEntity.ok(floorStatusService.getWeeklyCompletionRates(start, end));
+    }
+
     @GetMapping("/calendar/month")
     @Operation(
         summary = "월별 프로젝트(스케줄) 목록 조회",

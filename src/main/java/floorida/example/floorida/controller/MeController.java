@@ -465,4 +465,47 @@ public class MeController {
             return ResponseEntity.status(401).build();
         }
     }
+
+    // ============ 테스트용 API ============
+
+    @PostMapping("/test/add-floors")
+    @Operation(
+        summary = "[테스트용] 층수 추가",
+        description = """
+            **⚠️ 프론트엔드 테스트용 API입니다.**
+            
+            로그인한 사용자의 개인 층수(personalLevel)를 원하는 만큼 올립니다.
+            실제 운영 환경에서는 사용하지 마세요.
+            
+            **파라미터:**
+            - floors: 추가할 층수 (기본값: 100)
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(
+            responseCode = "200",
+            description = "성공 - 변경된 층수 반환",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(value = "{\"previousLevel\": 5, \"addedFloors\": 100, \"newLevel\": 105}")
+            )
+        ),
+        @ApiResponse(responseCode = "401", description = "인증 실패")
+    })
+    public ResponseEntity<?> addTestFloors(
+            @io.swagger.v3.oas.annotations.Parameter(description = "추가할 층수", example = "100")
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "100") int floors) {
+        User user = currentUserService.getCurrentUser()
+                .orElseThrow(() -> new IllegalStateException("Unauthenticated"));
+
+        UserProfile profile = userProfileService.getProfile(user.getUserId());
+        int previousLevel = profile.getPersonalLevel();
+        int newLevel = userProfileService.addPersonalLevels(user.getUserId(), floors);
+
+        return ResponseEntity.ok(java.util.Map.of(
+            "previousLevel", previousLevel,
+            "addedFloors", floors,
+            "newLevel", newLevel
+        ));
+    }
 }

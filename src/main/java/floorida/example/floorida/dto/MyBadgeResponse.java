@@ -13,6 +13,10 @@ public class MyBadgeResponse {
     private String type;
     private String description;
     private String imageUrl;
+    private Integer offsetX;
+    private Integer offsetY;
+    private Integer width;
+    private Integer height;
     private Instant earnedAt;
     private boolean equipped;
 }

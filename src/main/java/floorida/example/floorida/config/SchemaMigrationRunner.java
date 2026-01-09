@@ -41,6 +41,12 @@ public class SchemaMigrationRunner implements CommandLineRunner {
                     stmt.execute("ALTER TABLE user_profiles ALTER COLUMN daily_login_streak SET DEFAULT 0");
                     stmt.execute("UPDATE user_profiles SET daily_login_streak = 0 WHERE daily_login_streak IS NULL");
 
+                    // Badge rendering fields (nullable by design)
+                    stmt.execute("ALTER TABLE badges ADD COLUMN IF NOT EXISTS offset_x INT");
+                    stmt.execute("ALTER TABLE badges ADD COLUMN IF NOT EXISTS offset_y INT");
+                    stmt.execute("ALTER TABLE badges ADD COLUMN IF NOT EXISTS width INT");
+                    stmt.execute("ALTER TABLE badges ADD COLUMN IF NOT EXISTS height INT");
+
                     // Badge equip/unequip support
                     // 1) Add column as nullable first (avoid NOT NULL add failures on existing rows)
                     stmt.execute("ALTER TABLE user_badges ADD COLUMN IF NOT EXISTS equipped BOOLEAN");

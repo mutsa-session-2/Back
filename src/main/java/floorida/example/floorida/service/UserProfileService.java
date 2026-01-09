@@ -216,6 +216,15 @@ public class UserProfileService {
         profile.setPersonalLevel(newLevel);
         return newLevel;
     }
+
+    /** 개인 층수 -1 (완료 취소 시 감소, 최소 1층 유지) */
+    @Transactional
+    public void decrementPersonalLevel(Long userId) {
+        UserProfile profile = userProfileRepository.findById(userId)
+                .orElseThrow(() -> new IllegalStateException("User profile not found"));
+        int newLevel = Math.max(1, profile.getPersonalLevel() - 1);
+        profile.setPersonalLevel(newLevel);
+    }
 }
 
 

@@ -230,6 +230,69 @@ public class FloorController {
         }
     }
 
+    @PostMapping("/{floorId}/uncomplete")
+    @Operation(
+        summary = "Floor 완료 취소 (10코인 차감)",
+        description = """
+            완료된 Floor를 취소 처리합니다. (잘못 눌렀을 때 되돌리기)
+
+            - 코인 정책
+              - 완료 취소 시 **10코인 차감** (코인이 10개 미만이면 있는 만큼만 차감)
+            - 층수 정책
+              - 완료 취소 시 **개인 층수 -1** (최소 1층 유지)
+            - 에러
+              - 완료되지 않은 Floor를 취소하려 하면 400 에러
+            - 권한
+              - JWT 토큰 필수
+              - 본인이 생성한 Floor만 취소 가능
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(
+            responseCode = "200",
+            description = "취소 처리 성공",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    value = """
+                        {
+                          "floorId": 1,
+                          "completed": false,
+                          "coinsDeducted": 10,
+                          "currentPoints": 110
+                        }
+                        """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "완료되지 않은 Floor, 권한 없음 또는 기타 잘못된 요청",
+            content = @Content(mediaType = "application/json")
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "인증 실패",
+            content = @Content(mediaType = "application/json")
+        )
+    })
+    public ResponseEntity<?> uncompleteFloor(
+        @Parameter(description = "취소할 Floor ID", required = true, example = "1")
+        @PathVariable Long floorId
+    ) {
+        try {
+            FloorService.UncompleteResult r = floorService.uncompleteFloor(floorId);
+            return ResponseEntity.ok(java.util.Map.of(
+                "floorId", r.floorId(),
+                "completed", r.completed(),
+                "coinsDeducted", r.coinsDeducted(),
+                "currentPoints", r.currentPoints()
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @PatchMapping("/{floorId}")
     @Operation(
         summary = "Floor 수정 (제목/날짜)",

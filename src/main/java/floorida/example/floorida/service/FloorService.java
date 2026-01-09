@@ -116,6 +116,47 @@ public class FloorService {
     }
 
     /**
+     * Floor 완료 취소 처리 (잘못 눌렀을 때 되돌리기) - 10코인 차감, 층수 -1
+     */
+    public record UncompleteResult(Long floorId, boolean completed, int coinsDeducted, int currentPoints) {
+    }
+
+    @Transactional
+    public UncompleteResult uncompleteFloor(Long floorId) {
+        User user = currentUserService.getCurrentUser()
+                .orElseThrow(() -> new IllegalStateException("Unauthenticated"));
+
+        FloorPlan floor = floorPlanRepository.findById(floorId)
+                .orElseThrow(() -> new IllegalArgumentException("Floor not found"));
+
+        // 본인이 생성한 Floor인지 확인
+        if (!floor.getCreatorUserId().equals(user.getUserId())) {
+            throw new IllegalArgumentException("Not authorized to uncomplete this floor");
+        }
+
+        // 완료된 Floor인지 확인
+        FloorStatus status = floorStatusRepository.findByFloor_FloorIdAndUser_UserId(floorId, user.getUserId())
+                .orElseThrow(() -> new IllegalArgumentException("Floor is not completed"));
+
+        // FloorStatus 삭제 (완료 취소)
+        floorStatusRepository.delete(status);
+
+        // 10코인 차감 (가지고 있는 만큼만)
+        int currentPoints = userProfileService.getPoints(user.getUserId());
+        int deductAmount = Math.min(currentPoints, 10);
+        if (deductAmount > 0) {
+            userProfileService.deductPoints(user.getUserId(), deductAmount);
+        }
+
+        int newPoints = userProfileService.getPoints(user.getUserId());
+
+        // 개인 층수 -1 (최소 1층 유지)
+        userProfileService.decrementPersonalLevel(user.getUserId());
+
+        return new UncompleteResult(floorId, false, deductAmount, newPoints);
+    }
+
+    /**
      * Floor 제목 수정
      */
     @Transactional

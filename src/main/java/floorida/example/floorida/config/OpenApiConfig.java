@@ -112,8 +112,8 @@ public class OpenApiConfig {
                                     3. 여기에 토큰 값만 입력 (Bearer 접두사 제외)
                                     
                                     **예시:**
-                                    - ✅ 올바른 입력: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
-                                    - ❌ 잘못된 입력: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
+                                    -  올바른 입력: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
+                                    -  잘못된 입력: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
                                     """)));
     }
 }

@@ -97,7 +97,7 @@ public class UserService {
         }
 
         if (!newUsername.endsWith("\u200B")) {
-            throw new IllegalArgumentException("Invalid username format");
+            throw new IllegalArgumentException("bad request");
         }
 
         User user = userRepository.findById(userId)

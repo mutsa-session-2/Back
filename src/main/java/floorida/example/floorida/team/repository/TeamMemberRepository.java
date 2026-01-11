@@ -20,7 +20,7 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
     @Query("select tm.team.id from TeamMember tm where tm.user.userId = :userId")
     List<Long> findTeamIdsByUserId(@Param("userId") Long userId);
 
-    // 특정 팀 멤버 조회: userId + role만 가볍게
+    // 특정 팀 멤버 조회: userId + username + role
     @Query("""
            select u.userId, u.username, tm.role
            from TeamMember tm
@@ -28,6 +28,15 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
            where tm.team.id = :teamId
            """)
     List<Object[]> findUserIdUsernameAndRoleByTeamId(@Param("teamId") Long teamId);
+
+    // teamId 기준으로 TeamMember + User를 fetch join으로 한 번에 조회
+    @Query("""
+           select tm
+           from TeamMember tm
+           join fetch tm.user u
+           where tm.team.id = :teamId
+           """)
+    List<TeamMember> findByTeamIdWithUser(@Param("teamId") Long teamId);
 
     void deleteByTeam_Id(Long teamId);
 

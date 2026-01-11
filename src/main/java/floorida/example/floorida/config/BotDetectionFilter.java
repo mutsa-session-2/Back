@@ -16,8 +16,9 @@ public class BotDetectionFilter extends OncePerRequestFilter {
 
     // 차단할 봇 User-Agent 키워드 목록
     private static final List<String> BLOCKED_USER_AGENTS = Arrays.asList(
-            "curl", "wget", "python", "scrapy", "httpclient", "postman", "selenium", "puppeteer"
+            "curl", "wget", "python", "scrapy", "httpclient", "selenium", "puppeteer"
             // 필요에 따라 "googlebot", "bingbot" 등을 추가하거나 제외하세요.
+            // "postman"은 개발 테스트용으로 허용
     );
 
     @Override

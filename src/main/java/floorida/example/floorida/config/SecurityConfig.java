@@ -2,6 +2,7 @@ package floorida.example.floorida.config;
 
 import floorida.example.floorida.config.jwt.SetCustomUserDetailsFilter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -25,6 +26,9 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final SetCustomUserDetailsFilter setCustomUserDetailsFilter;
+
+    @Value("${app.cors.allowed-origins}")
+    private String allowedOrigins;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
                           SetCustomUserDetailsFilter setCustomUserDetailsFilter) {
@@ -72,8 +76,8 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        // Allow ALL origins/headers/methods (use for dev). For credentials, Spring will echo the request origin.
-        config.setAllowedOriginPatterns(List.of("*"));
+        // Allow specific origins based on environment
+        config.setAllowedOrigins(List.of(allowedOrigins.split(",")));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowCredentials(true);

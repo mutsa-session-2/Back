@@ -45,44 +45,54 @@ public class BadgeService {
     public List<MyBadgeResponse> getMyBadges() {
         User user = currentUserService.getCurrentUser()
                 .orElseThrow(() -> new IllegalStateException("Unauthenticated"));
-
-        return userBadgeRepository.findAllWithBadgeByUserId(user.getUserId()).stream()
-                .map(ub -> MyBadgeResponse.builder()
-                        .badgeId(ub.getBadge().getBadgeId())
-                        .name(ub.getBadge().getName())
-                        .type(ub.getBadge().getType())
-                        .description(ub.getBadge().getDescription())
-                        .imageUrl(ub.getBadge().getImageUrl())
-                .offsetX(ub.getBadge().getOffsetX())
-                .offsetY(ub.getBadge().getOffsetY())
-                .width(ub.getBadge().getWidth())
-                .height(ub.getBadge().getHeight())
-                        .earnedAt(ub.getEarnedAt())
-                        .equipped(ub.isEquipped())
-                        .build())
-                .toList();
+        return getBadgesByUserId(user.getUserId());
     }
 
     @Transactional(readOnly = true)
     public List<MyBadgeResponse> getMyEquippedBadges() {
         User user = currentUserService.getCurrentUser()
                 .orElseThrow(() -> new IllegalStateException("Unauthenticated"));
+        return getEquippedBadgesByUserId(user.getUserId());
+    }
 
-        return userBadgeRepository.findEquippedBadgesByUserId(user.getUserId()).stream()
-                .map(ub -> MyBadgeResponse.builder()
-                        .badgeId(ub.getBadge().getBadgeId())
-                        .name(ub.getBadge().getName())
-                        .type(ub.getBadge().getType())
-                        .description(ub.getBadge().getDescription())
-                        .imageUrl(ub.getBadge().getImageUrl())
+    /**
+     * 특정 사용자의 모든 뱃지 조회 (팀 서비스 등 외부 모듈 사용용)
+     */
+    @Transactional(readOnly = true)
+    public List<MyBadgeResponse> getBadgesByUserId(Long userId) {
+        return userBadgeRepository.findAllWithBadgeByUserId(userId).stream()
+                .map(this::toMyBadgeResponse)
+                .toList();
+    }
+
+    /**
+     * 특정 사용자의 장착 뱃지 조회 (팀 서비스 등 외부 모듈 사용용)
+     */
+    @Transactional(readOnly = true)
+    public List<MyBadgeResponse> getEquippedBadgesByUserId(Long userId) {
+        return userBadgeRepository.findEquippedBadgesByUserId(userId).stream()
+                .map(ub -> toMyBadgeResponse(ub, true))
+                .toList();
+    }
+
+    private MyBadgeResponse toMyBadgeResponse(UserBadge ub) {
+        return toMyBadgeResponse(ub, ub.isEquipped());
+    }
+
+    private MyBadgeResponse toMyBadgeResponse(UserBadge ub, boolean forceEquipped) {
+        return MyBadgeResponse.builder()
+                .badgeId(ub.getBadge().getBadgeId())
+                .name(ub.getBadge().getName())
+                .type(ub.getBadge().getType())
+                .description(ub.getBadge().getDescription())
+                .imageUrl(ub.getBadge().getImageUrl())
                 .offsetX(ub.getBadge().getOffsetX())
                 .offsetY(ub.getBadge().getOffsetY())
                 .width(ub.getBadge().getWidth())
                 .height(ub.getBadge().getHeight())
-                        .earnedAt(ub.getEarnedAt())
-                        .equipped(true)
-                        .build())
-                .toList();
+                .earnedAt(ub.getEarnedAt())
+                .equipped(forceEquipped)
+                .build();
     }
 
     /**

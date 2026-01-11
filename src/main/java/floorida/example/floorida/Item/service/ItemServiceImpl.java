@@ -27,6 +27,8 @@ public class ItemServiceImpl implements ItemService {
     private final UserItemRepository userItemRepository;
     private final UserService userService;
     private final UserProfileRepository userProfileRepository;
+    private static final Long BASIC_ITEM_ID = 7L; // ← 네가 아는 기본 아이템 ID
+
 
 
     /**
@@ -157,5 +159,28 @@ public class ItemServiceImpl implements ItemService {
                 ))
                 .toList();
     }
+
+    @Override
+    public void grantBasicItem(Long userId) {
+
+        // 1️⃣ 기본 아이템 조회
+        Item basicItem = itemRepository.findById(BASIC_ITEM_ID)
+                .orElseThrow(() -> new IllegalStateException("기본 아이템 없음"));
+
+        // 2️⃣ 이미 지급됐는지 체크
+        boolean alreadyOwned =
+                userItemRepository.findByUserIdAndItem_ItemId(userId, BASIC_ITEM_ID)
+                        .isPresent();
+
+        if (alreadyOwned) return;
+
+        // 3️⃣ 지급 + 장착
+        UserItem userItem = new UserItem(userId, basicItem);
+        userItem.equip(); // equipped = true
+
+        userItemRepository.save(userItem);
+    }
+
+
 
 }

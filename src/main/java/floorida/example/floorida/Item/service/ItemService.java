@@ -19,4 +19,7 @@ public interface ItemService {
     void equipItem(Long userId, Long itemId);
 
     void unequipItem(Long userId, Long itemId);
+
+    //기본캐릭터 추가
+    void grantBasicItem(Long userId);
 }

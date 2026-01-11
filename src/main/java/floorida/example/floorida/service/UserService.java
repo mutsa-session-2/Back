@@ -2,6 +2,7 @@ package floorida.example.floorida.service;
 
 import java.time.LocalDate;
 
+import floorida.example.floorida.Item.service.ItemService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,15 +19,18 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final CharacterService characterService;
     private final UserProfileService userProfileService;
+    private final ItemService itemService;
 
     public UserService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        CharacterService characterService,
-                       UserProfileService userProfileService) {
+                       UserProfileService userProfileService,
+                       ItemService itemService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.characterService = characterService;
         this.userProfileService = userProfileService;
+        this.itemService = itemService;
     }
 
     @Transactional
@@ -47,6 +51,9 @@ public class UserService {
         
         // 회원가입 시 기본 캐릭터 자동 생성
         characterService.createDefaultCharacter(savedUser);
+
+        // ✅ 기본 얼굴 아이템 지급 + 장착
+        itemService.grantBasicItem(savedUser.getUserId());
         
         return savedUser;
     }

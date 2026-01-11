@@ -17,4 +17,16 @@ public class TeamFloorCompleteResponse {
 
     @Schema(description = "현재 팀 레벨(엘리베이터 층수)", example = "3")
     private Integer teamLevel;
+
+    @Schema(
+            description = "이번 완료로 지급된 코인 (마감 지났으면 0, 정상이면 10)",
+            example = "10"
+    )
+    private int coinsAwarded;
+
+    @Schema(
+            description = "마감일을 지나 완료했는지 여부 (지각이면 true)",
+            example = "false"
+    )
+    private boolean late;
 }

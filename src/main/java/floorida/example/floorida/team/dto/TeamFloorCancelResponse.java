@@ -17,4 +17,10 @@ public class TeamFloorCancelResponse {
 
     @Schema(description = "현재 팀 레벨(엘리베이터 층수)", example = "2")
     private Integer teamLevel;
+
+    @Schema(
+            description = "이번 취소로 회수된 코인 (마감일 내 정상 완료였다면 10, 아니면 0)",
+            example = "10"
+    )
+    private int coinsDeducted;
 }

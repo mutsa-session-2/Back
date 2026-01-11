@@ -90,8 +90,8 @@ public class BadgeController {
         // 1. 요청자가 팀 멤버인지 검증
         teamService.getMember(teamId, userDetails.getUserId());
 
-        // 2. 팀의 모든 멤버 조회
-        List<TeamMember> members = teamService.getMembers(teamId);
+        // 2. 팀의 모든 멤버 조회 (User 정보 포함)
+        List<TeamMember> members = teamService.getMembersWithUser(teamId);
 
         // 3. 각 멤버별 장착 뱃지 조회 및 DTO 변환
         return members.stream()

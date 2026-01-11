@@ -50,6 +50,12 @@ public class TeamService {
         return teamMemberRepository.findByTeam_Id(teamId);
     }
 
+    // 팀 멤버 목록 (User Fetch Join)
+    @Transactional(readOnly = true)
+    public List<TeamMember> getMembersWithUser(Long teamId) {
+        return teamMemberRepository.findByTeamIdWithUser(teamId);
+    }
+
     // 권한 체크 - 멤버인지
     @Transactional(readOnly = true)
     public TeamMember getMember(Long teamId, Long userId) {

@@ -26,14 +26,17 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final SetCustomUserDetailsFilter setCustomUserDetailsFilter;
+    private final BotDetectionFilter botDetectionFilter;
 
     @Value("${app.cors.allowed-origins}")
     private String allowedOrigins;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
-                          SetCustomUserDetailsFilter setCustomUserDetailsFilter) {
+                          SetCustomUserDetailsFilter setCustomUserDetailsFilter,
+                          BotDetectionFilter botDetectionFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.setCustomUserDetailsFilter = setCustomUserDetailsFilter;
+        this.botDetectionFilter = botDetectionFilter;
     }
 
     @Bean
@@ -59,6 +62,7 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(botDetectionFilter, JwtAuthenticationFilter.class)
             .addFilterAfter(setCustomUserDetailsFilter, JwtAuthenticationFilter.class);
         return http.build();
     }

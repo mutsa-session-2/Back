@@ -7,4 +7,9 @@ import lombok.Getter;
 @AllArgsConstructor
 public class UpdateUsernameResponse {
     private String username;
+
+    public String getUsername() {
+        if (this.username == null) return null;
+        return this.username + "\u200B";
+    }
 }

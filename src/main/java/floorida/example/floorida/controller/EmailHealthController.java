@@ -46,4 +46,15 @@ public class EmailHealthController {
                 .message(message)
                 .build());
     }
+
+    @org.springframework.web.bind.annotation.PostMapping("/check-lock")
+    public ResponseEntity<Boolean> checkLock(@org.springframework.web.bind.annotation.RequestBody java.util.Map<String, String> body) {
+        String input = body.get("password");
+        // Environment variable: APP_HEALTH_PASSWORD
+        String expected = env.getProperty("APP_HEALTH_PASSWORD");
+        if (expected == null || expected.isBlank()) {
+            return ResponseEntity.ok(false);
+        }
+        return ResponseEntity.ok(expected.equals(input));
+    }
 }

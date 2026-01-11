@@ -19,17 +19,21 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final CharacterService characterService;
     private final UserProfileService userProfileService;
+    private final BadgeService badgeService;
     private final ItemService itemService;
+
 
     public UserService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        CharacterService characterService,
                        UserProfileService userProfileService,
+                       BadgeService badgeService,
                        ItemService itemService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.characterService = characterService;
         this.userProfileService = userProfileService;
+        this.badgeService = badgeService;
         this.itemService = itemService;
     }
 
@@ -52,13 +56,15 @@ public class UserService {
         // 회원가입 시 기본 캐릭터 자동 생성
         characterService.createDefaultCharacter(savedUser);
 
-        // ✅ 기본 얼굴 아이템 지급 + 장착
+        //기본캐릭터 소유, 보유
         itemService.grantBasicItem(savedUser.getUserId());
         
         return savedUser;
     }
 
-    public User authenticateOrThrow(LoginRequest req) {
+    public record LoginResult(User user, boolean dailyRewardGiven, boolean firstLoginBonusGiven) {}
+
+    public LoginResult authenticateOrThrow(LoginRequest req) {
         User user = userRepository.findByEmail(req.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
         if (!passwordEncoder.matches(req.getPassword(), user.getPasswordHash())) {
@@ -75,8 +81,34 @@ public class UserService {
 
         // 접속일 기준 하루 1회 일일 접속 보상 (+10코인)
         // 첫 로그인(가입 보너스 50코인) 날에도 함께 지급되도록 분리 정책으로 처리합니다.
-        userProfileService.grantDailyLoginRewardOnLogin(user.getUserId(), LocalDate.now());
+        boolean dailyRewardGiven = userProfileService.grantDailyLoginRewardOnLogin(user.getUserId(), LocalDate.now());
 
-        return user;
+        // 로그인 기반 연속 출석 streak에 따라 출석 뱃지를 지급합니다.
+        int streak = userProfileService.getCurrentDailyLoginStreak(user.getUserId(), LocalDate.now());
+        badgeService.onDailyLoginAttendance(user, streak);
+
+        return new LoginResult(user, dailyRewardGiven, createdProfile);
+    }
+
+    @Transactional
+    public User updateUsername(Long userId, String newUsername) {
+        if (newUsername == null || newUsername.isBlank()) {
+            throw new IllegalArgumentException("Username is required");
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        String trimmed = newUsername.trim();
+        if (trimmed.equals(user.getUsername())) {
+            return user;
+        }
+
+        if (userRepository.existsByUsername(trimmed)) {
+            throw new IllegalArgumentException("Username already in use");
+        }
+
+        user.setUsername(trimmed);
+        return userRepository.save(user);
     }
 }

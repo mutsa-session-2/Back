@@ -102,6 +102,65 @@ Content-Type: application/json
 
 ---
 
+### ✅ 내 뱃지 + 연속 출석 요약 조회 (GET /api/me/badges/summary)
+
+뱃지 팝업에서 "몇 일 연속 출석" 정보를 표시하기 위해,
+뱃지 목록과 함께 `attendStreak`(일일 접속 보상 기준 연속 출석 일수)를 반환합니다.
+
+**URL:** `{{BASE_URL}}/api/me/badges/summary`
+
+**Headers:**
+```
+Authorization: Bearer {{JWT_TOKEN}}
+```
+
+**예상 응답 (200):**
+```json
+{
+  "attendStreak": 3,
+  "asOfDate": "2026-01-06",
+  "badges": [
+    {
+      "badgeId": 1,
+      "name": "1일출석",
+      "type": "ATTENDANCE",
+      "description": "연속 1일 출석 달성",
+      "imageUrl": "https://...",
+      "earnedAt": "2026-01-04T12:34:56Z"
+    }
+  ]
+}
+```
+
+**참고:**
+- `attendStreak`는 로그인 시 지급되는 "일일 접속 보상" 기준으로 계산됩니다.
+- 아직 오늘 접속 보상을 받지 않았어도, 어제가 마지막 접속일이면(오늘 접속 전) 기존 streak 값을 그대로 반환합니다.
+
+**Postman에서 streak 테스트하는 방법**
+- (Day 1) 로그인 직후 `GET /api/me/badges/summary`를 호출하면 보통 `attendStreak = 1`이 됩니다.
+  - 이유: "연속 1일"은 **첫 날 접속 보상을 받은 시점**을 1일로 카운트합니다.
+- (Day 2) 실제로는 **다음 날** 다시 로그인해야 `attendStreak = 2`가 됩니다.
+  - 로컬에서 날짜를 하루 넘기기 어렵다면 DB 값을 임시로 조정해서 시뮬레이션할 수 있습니다.
+
+예) Supabase(PostgreSQL)에서 어제로 돌려놓기 (userId가 1인 경우)
+```sql
+-- 1) 마지막 접속 보상일을 어제로 변경
+UPDATE user_profiles
+SET last_daily_login_reward_date = CURRENT_DATE - INTERVAL '1 day'
+WHERE user_id = 1;
+
+-- 2) streak를 1로 맞춰둔 뒤
+UPDATE user_profiles
+SET daily_login_streak = 1
+WHERE user_id = 1;
+```
+
+그 다음 Postman에서:
+1) `POST /api/auth/login` 다시 호출
+2) `GET /api/me/badges/summary` 호출 → `attendStreak`가 2로 증가하는지 확인
+
+---
+
 ### 3️⃣ 수동 일정 생성 (POST /api/schedules)
 
 **URL:** `{{BASE_URL}}/api/schedules`
@@ -112,30 +171,14 @@ Content-Type: application/json
 Authorization: Bearer {{JWT_TOKEN}}
 ```
 
-**Body (JSON) - 새 필드 포함:**
+**Body (JSON):**
 ```json
 {
   "title": "토익 900점 달성",
-  "originalGoal": "3주 안에 토익 900점 달성하기",
-  "goalSummary": "RC와 LC를 균형있게 학습하며 실전 모의고사 중심으로 준비",
   "startDate": "2025-11-16",
   "endDate": "2025-12-07",
   "color": "#2E8B57",
-  "teamId": null,
-  "floors": [
-    {
-      "title": "RC 파트 기본 문법 복습",
-      "scheduledDate": "2025-11-16"
-    },
-    {
-      "title": "LC Part 1-2 집중 훈련",
-      "scheduledDate": "2025-11-17"
-    },
-    {
-      "title": "실전 모의고사 1회",
-      "scheduledDate": "2025-11-20"
-    }
-  ]
+  "teamId": null
 }
 ```
 
@@ -218,10 +261,104 @@ Authorization: Bearer {{JWT_TOKEN}}
     }
     // ... AI가 생성한 나머지 floors
   ]
-}
+
+---
+
+## 삭제 API
+
+### ✅ Floor 단건 삭제 (DELETE /api/floors/{floorId})
+
+**URL:** `{{BASE_URL}}/api/floors/{{FLOOR_ID}}`
+
+**Headers:**
+```
+Authorization: Bearer {{JWT_TOKEN}}
 ```
 
+**예상 응답 (204):**
+```
+(no content)
+```
+
+**설명:**
+- 해당 Floor(세부 일정)만 삭제합니다.
+- 완료 기록(FloorStatus)이 있어도 함께 정리되어 500이 발생하지 않습니다.
+
+---
+
+### ✅ 일정의 floors 일괄 삭제 (DELETE /api/floors/schedule/{scheduleId})
+
+**URL:** `{{BASE_URL}}/api/floors/schedule/{{SCHEDULE_ID}}`
+
+**Headers:**
+```
+Authorization: Bearer {{JWT_TOKEN}}
+```
+
+**예상 응답 (204):**
+```
+(no content)
+```
+
+**설명:**
+- 일정(Schedule) 자체를 삭제합니다. (일정이 삭제되면 포함된 floors도 같이 삭제됩니다)
+- 완료 기록(FloorStatus)도 함께 정리됩니다.
+
+---
+
+### ✅ 일정 삭제 (DELETE /api/schedules/{id})
+
+**URL:** `{{BASE_URL}}/api/schedules/{{SCHEDULE_ID}}`
+
+**Headers:**
+```
+Authorization: Bearer {{JWT_TOKEN}}
+```
+
+**예상 응답 (204):**
+```
+(no content)
+```
+
+**설명:**
+- 일정을 삭제합니다. 포함된 floors와 완료 기록도 함께 삭제됩니다.
+
+
 **💡 참고:** `title`을 생략하면 `goal` 값이 그대로 제목으로 사용됩니다.
+
+---
+
+### ✅ 내 일정 목록 조회 (GET /api/schedules)
+
+**URL:** `{{BASE_URL}}/api/schedules`
+
+**Headers:**
+```
+Authorization: Bearer {{JWT_TOKEN}}
+```
+
+**예상 응답 (200):**
+```json
+[
+  {
+    "scheduleId": 1,
+    "title": "토익 900점 달성",
+    "originalGoal": "토익 900점 달성",
+    "goalSummary": null,
+    "startDate": "2025-11-16",
+    "endDate": "2025-12-07",
+    "color": "#2E8B57",
+    "teamId": null,
+    "floors": [
+      {
+        "floorId": 1,
+        "title": "1일 차",
+        "scheduledDate": "2025-11-16"
+      }
+    ]
+  }
+]
+```
 
 ---
 

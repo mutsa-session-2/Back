@@ -5,11 +5,16 @@ import floorida.example.floorida.Exception.Item.NotEnoughCoinException;
 import floorida.example.floorida.Exception.Item.TeamAccessDeniedException;
 import floorida.example.floorida.Exception.Item.TeamNotFoundException;
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.Map;
 
@@ -69,7 +74,7 @@ public class GlobalExceptionHandler {
         }
 
         // --- Auth ---
-        if ("unauthorized".equalsIgnoreCase(msg)) {
+        if ("unauthorized".equalsIgnoreCase(msg) || "unauthenticated".equalsIgnoreCase(msg)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("message", msg));
         }
@@ -128,9 +133,23 @@ public class GlobalExceptionHandler {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("message", msg));
         }
+        if ("schedule not found".equalsIgnoreCase(msg)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("message", msg));
+        }
+        if ("floor not found".equalsIgnoreCase(msg)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("message", msg));
+        }
         if ("invalid join code".equalsIgnoreCase(msg)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("message", msg));
+        }
+
+        // --- Permission ---
+        if (msg.toLowerCase().startsWith("not authorized")) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("message", msg));
         }
 
         // --- Password (팀 삭제 재인증) ---
@@ -170,6 +189,48 @@ public class GlobalExceptionHandler {
         // 그 외 검증 오류는 400
         return ResponseEntity.badRequest()
                 .body(Map.of("message", msg));
+    }
+
+    // ===== DB Integrity / FK constraint =====
+    // FK 제약 등으로 삭제/수정이 실패하는 경우 409로 매핑
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<?> handleDataIntegrityViolation(DataIntegrityViolationException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("message", "conflict"));
+    }
+
+    // ===== Path Variable Type Mismatch =====
+    // PathVariable 타입 불일치 (예: /api/schedules/abc)
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<?> handleTypeMismatch(MethodArgumentTypeMismatchException e) {
+        String msg = "invalid parameter: " + e.getName();
+        return ResponseEntity.badRequest()
+                .body(Map.of("message", msg));
+    }
+
+    // ===== No Handler Found =====
+    // 존재하지 않는 경로 요청 시 404 반환
+    @ExceptionHandler(NoHandlerFoundException.class)
+    public ResponseEntity<?> handleNoHandlerFound(NoHandlerFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("message", "not found"));
+    }
+
+    // ===== Static Resource Not Found =====
+    // 정적 리소스 핸들러가 리소스를 못 찾는 경우도 404로 반환
+    // (Global catch-all이 500으로 바꾸지 않도록 분리)
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<?> handleNoResourceFound(NoResourceFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("message", "not found"));
+    }
+
+    // ===== Method Not Supported =====
+    // 지원하지 않는 HTTP 메서드 (예: POST /api/schedules/{id})
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<?> handleMethodNotSupported(HttpRequestMethodNotSupportedException e) {
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
+                .body(Map.of("message", "method not allowed"));
     }
 
     // ===== Fallback =====

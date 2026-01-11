@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -24,6 +25,17 @@ public interface FloorPlanRepository extends JpaRepository<FloorPlan, Long> {
     
     // 특정 사용자의 기간별 Floor 조회
     List<FloorPlan> findAllByCreatorUserIdAndScheduledDateBetween(Long creatorUserId, LocalDate start, LocalDate end);
+
+        @Modifying(clearAutomatically = true, flushAutomatically = true)
+        @Query("""
+                delete from FloorPlan fp
+                where fp.schedule.scheduleId = :scheduleId
+                    and fp.creatorUserId = :userId
+                """)
+        int deleteByScheduleIdAndCreatorUserId(
+                        @Param("scheduleId") Long scheduleId,
+                        @Param("userId") Long userId
+        );
 
         /**
          * 개인 플레이스용: 오늘 이전 날짜의 미달성 Floor 목록을 조회합니다.

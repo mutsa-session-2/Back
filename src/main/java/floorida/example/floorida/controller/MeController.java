@@ -4,15 +4,22 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
 import java.util.List;
 
+import floorida.example.floorida.dto.ApiErrorResponse;
 import floorida.example.floorida.dto.MyBadgeResponse;
+import floorida.example.floorida.dto.MyBadgeSummaryResponse;
 import floorida.example.floorida.dto.OnboardingRequest;
+import floorida.example.floorida.dto.UpdateUsernameRequest;
+import floorida.example.floorida.dto.UpdateUsernameResponse;
 import floorida.example.floorida.dto.UncompletedScheduleResponse;
 import floorida.example.floorida.dto.WithdrawRequest;
 import floorida.example.floorida.entity.User;
@@ -21,6 +28,7 @@ import floorida.example.floorida.service.AccountService;
 import floorida.example.floorida.service.BadgeService;
 import floorida.example.floorida.service.CurrentUserService;
 import floorida.example.floorida.service.FloorStatusService;
+import floorida.example.floorida.service.UserService;
 import floorida.example.floorida.service.UserProfileService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -34,7 +42,7 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/me")
-@Tag(name = "내 정보", description = "로그인한 사용자의 정보/포인트를 조회하는 API")
+@Tag(name = "내 정보", description = "로그인한 사용자의 정보/포인트를 조회하는 API입니다.")
 @SecurityRequirement(name = "bearerAuth")
 public class MeController {
 
@@ -43,19 +51,22 @@ public class MeController {
     private final AccountService accountService;
     private final BadgeService badgeService;
     private final FloorStatusService floorStatusService;
+    private final UserService userService;
 
     public MeController(
             CurrentUserService currentUserService,
             UserProfileService userProfileService,
             AccountService accountService,
             BadgeService badgeService,
-            FloorStatusService floorStatusService
+            FloorStatusService floorStatusService,
+            UserService userService
     ) {
         this.currentUserService = currentUserService;
         this.userProfileService = userProfileService;
         this.accountService = accountService;
         this.badgeService = badgeService;
         this.floorStatusService = floorStatusService;
+        this.userService = userService;
     }
 
     @GetMapping
@@ -110,6 +121,182 @@ public class MeController {
     @Operation(summary = "내 뱃지 목록 조회", description = "로그인한 사용자가 획득한 뱃지 목록을 반환합니다.")
     public ResponseEntity<List<MyBadgeResponse>> getMyBadges() {
         return ResponseEntity.ok(badgeService.getMyBadges());
+    }
+
+    @PatchMapping("/username")
+    @Operation(
+        summary = "내 닉네임(username) 변경",
+        description = "로그인한 사용자의 username(닉네임)을 변경합니다. username은 유니크해야 합니다."
+    )
+    @ApiResponses({
+        @ApiResponse(
+            responseCode = "200",
+            description = "변경 성공",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = UpdateUsernameResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "요청 오류(중복 username 등)",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "인증 실패",
+            content = @Content(mediaType = "application/json")
+        )
+    })
+    public ResponseEntity<?> updateMyUsername(@Valid @RequestBody UpdateUsernameRequest request) {
+        User user = currentUserService.getCurrentUser()
+                .orElseThrow(() -> new IllegalStateException("Unauthenticated"));
+
+        try {
+            User updated = userService.updateUsername(user.getUserId(), request.getUsername());
+            return ResponseEntity.ok(new UpdateUsernameResponse(updated.getUsername()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(new ApiErrorResponse("BAD_REQUEST", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/username")
+    @Operation(
+        summary = "내 닉네임(username) 조회",
+        description = "로그인한 사용자의 username(닉네임)을 조회합니다."
+    )
+    @ApiResponses({
+        @ApiResponse(
+            responseCode = "200",
+            description = "조회 성공",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = UpdateUsernameResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "인증 실패",
+            content = @Content(mediaType = "application/json")
+        )
+    })
+    public ResponseEntity<UpdateUsernameResponse> getMyUsername() {
+        User user = currentUserService.getCurrentUser()
+                .orElseThrow(() -> new IllegalStateException("Unauthenticated"));
+
+        return ResponseEntity.ok(new UpdateUsernameResponse(user.getUsername()));
+    }
+
+    @GetMapping("/badges/equipped")
+    @Operation(summary = "현재 장착된 뱃지 조회", description = "로그인한 사용자가 현재 장착 중인 뱃지 목록을 반환합니다.")
+    @ApiResponses({
+        @ApiResponse(
+            responseCode = "200",
+            description = "조회 성공",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = MyBadgeResponse.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "인증 실패",
+            content = @Content(mediaType = "application/json")
+        )
+    })
+    public ResponseEntity<List<MyBadgeResponse>> getMyEquippedBadges() {
+        return ResponseEntity.ok(badgeService.getMyEquippedBadges());
+    }
+
+    @PostMapping("/badges/{badgeId}/equip")
+    @Operation(summary = "뱃지 장착", description = "로그인한 사용자가 보유한 뱃지를 장착합니다.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "204", description = "장착 성공"),
+        @ApiResponse(
+            responseCode = "401",
+            description = "인증 실패",
+            content = @Content(mediaType = "application/json")
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "보유하지 않은 뱃지 또는 존재하지 않는 뱃지",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(value = "{\"message\":\"badge not found\"}")
+            )
+        )
+    })
+    public ResponseEntity<Void> equipBadge(@PathVariable Long badgeId) {
+        badgeService.equipMyBadge(badgeId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/badges/{badgeId}/unequip")
+    @Operation(summary = "뱃지 해제", description = "로그인한 사용자가 장착 중인 뱃지를 해제합니다.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "204", description = "해제 성공"),
+        @ApiResponse(
+            responseCode = "401",
+            description = "인증 실패",
+            content = @Content(mediaType = "application/json")
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "보유하지 않은 뱃지 또는 존재하지 않는 뱃지",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(value = "{\"message\":\"badge not found\"}")
+            )
+        )
+    })
+    public ResponseEntity<Void> unequipBadge(@PathVariable Long badgeId) {
+        badgeService.unequipMyBadge(badgeId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/badges/summary")
+    @Operation(
+        summary = "내 뱃지 + 연속 출석 요약 조회",
+        description = "로그인한 사용자가 획득한 뱃지 목록과, 일일 접속 보상 기준 연속 출석 일수(attendStreak)를 함께 반환합니다."
+    )
+    @ApiResponses({
+        @ApiResponse(
+            responseCode = "200",
+            description = "조회 성공",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = MyBadgeSummaryResponse.class),
+                examples = @ExampleObject(
+                    name = "요약 예시",
+                    value = """
+                        {
+                          \"attendStreak\": 3,
+                          \"asOfDate\": \"2026-01-06\",
+                          \"badges\": [
+                            {
+                              \"badgeId\": 1,
+                              \"name\": \"1일출석\",
+                              \"type\": \"ATTENDANCE\",
+                              \"description\": \"연속 1일 출석 달성\",
+                              \"imageUrl\": \"https://...\",
+                              \"earnedAt\": \"2026-01-04T12:34:56Z\"
+                            }
+                          ]
+                        }
+                        """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "인증 실패",
+            content = @Content(mediaType = "application/json")
+        )
+    })
+    public ResponseEntity<MyBadgeSummaryResponse> getMyBadgeSummary() {
+        User user = currentUserService.getCurrentUser()
+                .orElseThrow(() -> new IllegalStateException("Unauthenticated"));
+
+        int attendStreak = userProfileService.getCurrentDailyLoginStreak(user.getUserId(), LocalDate.now());
+        return ResponseEntity.ok(MyBadgeSummaryResponse.builder()
+                .attendStreak(attendStreak)
+                .asOfDate(LocalDate.now())
+                .badges(badgeService.getMyBadges())
+                .build());
     }
 
     @GetMapping("/personal-place/missed")
@@ -277,5 +464,48 @@ public class MeController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(401).build();
         }
+    }
+
+    // ============ 테스트용 API ============
+
+    @PostMapping("/test/add-floors")
+    @Operation(
+        summary = "[테스트용] 층수 추가",
+        description = """
+            **⚠️ 프론트엔드 테스트용 API입니다.**
+            
+            로그인한 사용자의 개인 층수(personalLevel)를 원하는 만큼 올립니다.
+            실제 운영 환경에서는 사용하지 마세요.
+            
+            **파라미터:**
+            - floors: 추가할 층수 (기본값: 100)
+            """
+    )
+    @ApiResponses({
+        @ApiResponse(
+            responseCode = "200",
+            description = "성공 - 변경된 층수 반환",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(value = "{\"previousLevel\": 5, \"addedFloors\": 100, \"newLevel\": 105}")
+            )
+        ),
+        @ApiResponse(responseCode = "401", description = "인증 실패")
+    })
+    public ResponseEntity<?> addTestFloors(
+            @io.swagger.v3.oas.annotations.Parameter(description = "추가할 층수", example = "100")
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "100") int floors) {
+        User user = currentUserService.getCurrentUser()
+                .orElseThrow(() -> new IllegalStateException("Unauthenticated"));
+
+        UserProfile profile = userProfileService.getProfile(user.getUserId());
+        int previousLevel = profile.getPersonalLevel();
+        int newLevel = userProfileService.addPersonalLevels(user.getUserId(), floors);
+
+        return ResponseEntity.ok(java.util.Map.of(
+            "previousLevel", previousLevel,
+            "addedFloors", floors,
+            "newLevel", newLevel
+        ));
     }
 }

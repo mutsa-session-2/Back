@@ -40,9 +40,13 @@ public class UserBadge {
     @Column(name = "earned_at", nullable = false, updatable = false)
     private Instant earnedAt;
 
+    @Column(name = "equipped")
+    private boolean equipped = false;
+
     public UserBadge(User user, Badge badge) {
         this.user = user;
         this.badge = badge;
         this.id = new UserBadgeId(user.getUserId(), badge.getBadgeId());
+        this.equipped = false;
     }
 }

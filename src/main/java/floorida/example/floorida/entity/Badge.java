@@ -33,4 +33,16 @@ public class Badge {
 
     @Column(name = "image_url", length = 500)
     private String imageUrl;
+
+    @Column(name = "offset_x")
+    private Integer offsetX;
+
+    @Column(name = "offset_y")
+    private Integer offsetY;
+
+    @Column(name = "width")
+    private Integer width;
+
+    @Column(name = "height")
+    private Integer height;
 }

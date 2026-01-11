@@ -16,6 +16,7 @@ import floorida.example.floorida.dto.ScheduleUpdateRequest;
 import floorida.example.floorida.entity.FloorPlan;
 import floorida.example.floorida.entity.Schedule;
 import floorida.example.floorida.entity.User;
+import floorida.example.floorida.repository.FloorStatusRepository;
 import floorida.example.floorida.repository.ScheduleRepository;
 
 @Service
@@ -23,6 +24,7 @@ public class ScheduleService {
     private final ScheduleRepository scheduleRepository;
     private final CurrentUserService currentUserService;
     private final AiPlanningService aiPlanningService;
+    private final FloorStatusRepository floorStatusRepository;
 
     // 예쁜 팔레트에서 자동 배정 (사용자가 color 미입력 시 사용)
     private static final String[] COLOR_PALETTE = new String[] {
@@ -33,10 +35,12 @@ public class ScheduleService {
 
     public ScheduleService(ScheduleRepository scheduleRepository,
                            CurrentUserService currentUserService,
-                           AiPlanningService aiPlanningService) {
+                           AiPlanningService aiPlanningService,
+                           FloorStatusRepository floorStatusRepository) {
         this.scheduleRepository = scheduleRepository;
         this.currentUserService = currentUserService;
         this.aiPlanningService = aiPlanningService;
+        this.floorStatusRepository = floorStatusRepository;
     }
 
     @Transactional
@@ -117,6 +121,17 @@ public class ScheduleService {
                 .orElseThrow(() -> new IllegalArgumentException("Schedule not found"));
         return toResponse(s);
     }
+
+        @Transactional(readOnly = true)
+        public List<ScheduleResponse> listMySchedules() {
+        User user = currentUserService.getCurrentUser()
+            .orElseThrow(() -> new IllegalStateException("Unauthenticated"));
+
+        return scheduleRepository.findByCreatorUserId(user.getUserId())
+            .stream()
+            .map(this::toResponse)
+            .toList();
+        }
 
     private void validateDates(LocalDate start, LocalDate end) {
         if (start == null || end == null || end.isBefore(start)) {
@@ -201,6 +216,10 @@ public class ScheduleService {
         User user = currentUserService.getCurrentUser().orElseThrow(() -> new IllegalStateException("Unauthenticated"));
         Schedule s = scheduleRepository.findByScheduleIdAndCreatorUserId(id, user.getUserId())
                 .orElseThrow(() -> new IllegalArgumentException("Schedule not found"));
+
+        // floors는 Schedule -> FloorPlan cascade로 삭제되지만,
+        // FloorStatus는 별도 엔티티라 FK 제약으로 인해 먼저 정리해야 500을 방지할 수 있습니다.
+        floorStatusRepository.deleteByScheduleId(id);
         scheduleRepository.delete(s);
     }
 }

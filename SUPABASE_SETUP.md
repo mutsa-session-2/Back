@@ -110,7 +110,9 @@ CREATE TABLE user_profiles (
     planning_tendency VARCHAR(50),
     daily_study_hours VARCHAR(50),
     points INT NOT NULL DEFAULT 0,
-    personal_level INT NOT NULL DEFAULT 1
+    personal_level INT NOT NULL DEFAULT 1,
+    last_daily_login_reward_date DATE,
+    daily_login_streak INT NOT NULL DEFAULT 0
 );
 
 -- schedules 테이블

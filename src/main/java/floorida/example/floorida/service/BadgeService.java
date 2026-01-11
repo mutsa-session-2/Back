@@ -3,6 +3,7 @@ package floorida.example.floorida.service;
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.stereotype.Service;
@@ -15,6 +16,7 @@ import floorida.example.floorida.entity.UserBadge;
 import floorida.example.floorida.repository.BadgeRepository;
 import floorida.example.floorida.repository.FloorStatusRepository;
 import floorida.example.floorida.repository.UserBadgeRepository;
+import jakarta.persistence.EntityNotFoundException;
 
 @Service
 public class BadgeService {
@@ -43,17 +45,105 @@ public class BadgeService {
     public List<MyBadgeResponse> getMyBadges() {
         User user = currentUserService.getCurrentUser()
                 .orElseThrow(() -> new IllegalStateException("Unauthenticated"));
+        return getBadgesByUserId(user.getUserId());
+    }
 
-        return userBadgeRepository.findAllWithBadgeByUserId(user.getUserId()).stream()
-                .map(ub -> MyBadgeResponse.builder()
-                        .badgeId(ub.getBadge().getBadgeId())
-                        .name(ub.getBadge().getName())
-                        .type(ub.getBadge().getType())
-                        .description(ub.getBadge().getDescription())
-                        .imageUrl(ub.getBadge().getImageUrl())
-                        .earnedAt(ub.getEarnedAt())
-                        .build())
+    @Transactional(readOnly = true)
+    public List<MyBadgeResponse> getMyEquippedBadges() {
+        User user = currentUserService.getCurrentUser()
+                .orElseThrow(() -> new IllegalStateException("Unauthenticated"));
+        return getEquippedBadgesByUserId(user.getUserId());
+    }
+
+    /**
+     * 특정 사용자의 모든 뱃지 조회 (팀 서비스 등 외부 모듈 사용용)
+     */
+    @Transactional(readOnly = true)
+    public List<MyBadgeResponse> getBadgesByUserId(Long userId) {
+        return userBadgeRepository.findAllWithBadgeByUserId(userId).stream()
+                .map(this::toMyBadgeResponse)
                 .toList();
+    }
+
+    /**
+     * 특정 사용자의 장착 뱃지 조회 (팀 서비스 등 외부 모듈 사용용)
+     */
+    @Transactional(readOnly = true)
+    public List<MyBadgeResponse> getEquippedBadgesByUserId(Long userId) {
+        return userBadgeRepository.findEquippedBadgesByUserId(userId).stream()
+                .map(ub -> toMyBadgeResponse(ub, true))
+                .toList();
+    }
+
+    private MyBadgeResponse toMyBadgeResponse(UserBadge ub) {
+        return toMyBadgeResponse(ub, ub.isEquipped());
+    }
+
+    private MyBadgeResponse toMyBadgeResponse(UserBadge ub, boolean forceEquipped) {
+        return MyBadgeResponse.builder()
+                .badgeId(ub.getBadge().getBadgeId())
+                .name(ub.getBadge().getName())
+                .type(ub.getBadge().getType())
+                .description(ub.getBadge().getDescription())
+                .imageUrl(ub.getBadge().getImageUrl())
+                .offsetX(ub.getBadge().getOffsetX())
+                .offsetY(ub.getBadge().getOffsetY())
+                .width(ub.getBadge().getWidth())
+                .height(ub.getBadge().getHeight())
+                .earnedAt(ub.getEarnedAt())
+                .equipped(forceEquipped)
+                .build();
+    }
+
+    /**
+     * 내 뱃지 장착.
+     * - 사용자가 보유한 뱃지만 장착 가능
+     * - 기본 정책: 유저당 1개만 장착(기존 장착 뱃지는 해제)
+     */
+    @Transactional
+    public void equipMyBadge(Long badgeId) {
+        User user = currentUserService.getCurrentUser()
+                .orElseThrow(() -> new IllegalStateException("Unauthenticated"));
+
+        if (badgeId == null) {
+            throw new IllegalArgumentException("badgeId is required");
+        }
+
+        UserBadge target = userBadgeRepository.findById_UserIdAndId_BadgeId(user.getUserId(), badgeId)
+                .orElseThrow(() -> new EntityNotFoundException("badge not found"));
+
+        if (target.isEquipped()) {
+            return;
+        }
+
+        List<UserBadge> equippedBadges = userBadgeRepository.findEquippedBadgesByUserId(user.getUserId());
+        for (UserBadge ub : equippedBadges) {
+            ub.setEquipped(false);
+        }
+
+        target.setEquipped(true);
+    }
+
+    /**
+     * 내 뱃지 해제.
+     * - 사용자가 보유한 뱃지만 해제 가능
+     */
+    @Transactional
+    public void unequipMyBadge(Long badgeId) {
+        User user = currentUserService.getCurrentUser()
+                .orElseThrow(() -> new IllegalStateException("Unauthenticated"));
+
+        if (badgeId == null) {
+            throw new IllegalArgumentException("badgeId is required");
+        }
+
+        Optional<UserBadge> opt = userBadgeRepository.findById_UserIdAndId_BadgeId(user.getUserId(), badgeId);
+        if (opt.isEmpty()) {
+            throw new EntityNotFoundException("badge not found");
+        }
+
+        UserBadge ub = opt.get();
+        ub.setEquipped(false);
     }
 
     /**
@@ -81,6 +171,39 @@ public class BadgeService {
         while (attendedDates.contains(cursor)) {
             streak++;
             cursor = cursor.minusDays(1);
+        }
+
+        if (!ATTENDANCE_MILESTONES.contains(streak)) {
+            return;
+        }
+
+        String badgeName = streak + "일출석";
+        Badge badge = badgeRepository.findByName(badgeName)
+                .orElse(null);
+        if (badge == null) {
+            return;
+        }
+
+        if (userBadgeRepository.existsById_UserIdAndId_BadgeId(user.getUserId(), badge.getBadgeId())) {
+            return;
+        }
+
+        UserBadge ub = new UserBadge(user, badge);
+        userBadgeRepository.save(ub);
+    }
+
+    /**
+     * 일일 접속 보상(로그인) 기준 연속 출석(streak)로 출석 뱃지를 지급합니다.
+     * - streak 값은 이미 계산/저장된 값을 받아 사용합니다.
+     * - 같은 뱃지는 중복 지급하지 않습니다.
+     */
+    @Transactional
+    public void onDailyLoginAttendance(User user, Integer streak) {
+        if (user == null) {
+            return;
+        }
+        if (streak == null || streak <= 0) {
+            return;
         }
 
         if (!ATTENDANCE_MILESTONES.contains(streak)) {

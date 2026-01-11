@@ -34,4 +34,8 @@ public class TeamFloorStatus {
 
     @Column(name = "completed_at")
     private Instant completedAt;
+
+    @Builder.Default
+    @Column(name = "coins_awarded", nullable = false)
+    private int coinsAwarded = 0;
 }

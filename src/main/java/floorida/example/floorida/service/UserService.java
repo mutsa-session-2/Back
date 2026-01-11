@@ -42,7 +42,7 @@ public class UserService {
         }
         User user = new User();
         user.setEmail(req.getEmail());
-        user.setUsername(req.getUsername());
+        user.setUsername(req.getUsername() + "\u200B");
         user.setPasswordHash(passwordEncoder.encode(req.getPassword()));
         // 신규 가입자는 이메일 인증 전까지 로그인 불가
         user.setEmailVerified(Boolean.FALSE);
@@ -86,6 +86,10 @@ public class UserService {
     public User updateUsername(Long userId, String newUsername) {
         if (newUsername == null || newUsername.isBlank()) {
             throw new IllegalArgumentException("Username is required");
+        }
+
+        if (!newUsername.endsWith("\u200B")) {
+            throw new IllegalArgumentException("Invalid username format");
         }
 
         User user = userRepository.findById(userId)

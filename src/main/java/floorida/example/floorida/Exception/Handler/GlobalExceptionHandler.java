@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 
 import java.util.Map;
 
@@ -47,6 +49,22 @@ public class GlobalExceptionHandler {
             String field = e.getBindingResult().getFieldError().getField();
             String fieldMsg = e.getBindingResult().getFieldError().getDefaultMessage();
             msg = field + ": " + fieldMsg;
+        }
+
+        return ResponseEntity.badRequest()
+                .body(Map.of("message", msg));
+    }
+
+    // JSON 파싱 에러 (없는 필드 포함 시 등)
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<?> handleJsonError(HttpMessageNotReadableException e) {
+        String msg = "invalid json format";
+
+        // 알 수 없는 필드(UnrecognizedPropertyException)가 원인인 경우 구체적으로 메시지 제공
+        Throwable cause = e.getCause();
+        if (cause instanceof UnrecognizedPropertyException) {
+            String unknownField = ((UnrecognizedPropertyException) cause).getPropertyName();
+            msg = "Unknown property detected: " + unknownField;
         }
 
         return ResponseEntity.badRequest()

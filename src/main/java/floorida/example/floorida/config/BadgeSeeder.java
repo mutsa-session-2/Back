@@ -23,7 +23,7 @@ public class BadgeSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
-        List<Integer> milestones = List.of(1, 7, 30, 200, 300, 400, 500);
+        List<Integer> milestones = List.of(1, 70, 30, 200, 300, 400, 500);
 
         for (int days : milestones) {
             String name = days + "일출석";

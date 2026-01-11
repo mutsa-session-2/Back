@@ -22,7 +22,7 @@ import jakarta.persistence.EntityNotFoundException;
 public class BadgeService {
 
     // 연속 출석 뱃지 기준 (업로드된 이미지 기준)
-    private static final List<Integer> ATTENDANCE_MILESTONES = List.of(1, 7, 30, 200, 300, 400, 500);
+    private static final List<Integer> ATTENDANCE_MILESTONES = List.of(1, 70, 30, 200, 300, 400, 500);
 
     private final BadgeRepository badgeRepository;
     private final UserBadgeRepository userBadgeRepository;

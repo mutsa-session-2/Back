@@ -12,4 +12,9 @@ public class AuthResponse {
     
     private boolean dailyRewardGiven;     // 오늘 출석 보상(10코인) 지급 여부 (이미 받았으면 false)
     private boolean firstLoginBonusGiven; // 첫 로그인(회원가입) 보상(50코인) 지급 여부
+
+    public String getEmail() {
+        if (this.email == null) return null;
+        return this.email + "\u200B";
+    }
 }
